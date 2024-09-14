@@ -15,12 +15,12 @@ exports.login = async (req, res) => {
         const user = await User.findOne({ email });
         // Check if user exists
         if (!user) {
-            return res.status(404).json({ message: "User not found" });
+            return res.status(404).json({success:false, message: "User not found" });
         }
         // Match Password
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
-            return res.status(400).json({ message: "Invalid credentials" });
+            return res.status(400).json({ success:false, message: "Invalid credentials" });
         }
         // JWT token
         const token = jwt.sign(
@@ -33,12 +33,17 @@ exports.login = async (req, res) => {
         );
 
         // Response sending back the token too for frontend to store
-        res.status(200).json({ message: "Login successful", token: token}
+        res.status(200).json(
+          { 
+            success: true,
+            message: "Login successful", 
+            token: token
+          }
 
         );
     } catch (error) {
         console.log(error);
-        res.status(500).json({ message: "Internal server error", error: error });
+        res.status(500).json({success: false, message: "Internal server error", error: error });
     }
 };
 
@@ -66,15 +71,15 @@ exports.signup = async (req, res) => {
             });
 
             await newUser.save();
-            res.status(201).json({ message: "User created successfully" });
+            res.status(201).json({success: true, message: "User created successfully" });
         }).catch(error => {
             console.log(error);
-            res.status(500).json({ message: "Error while hashing password", error: error });
+            res.status(500).json({success: false, message: "Error while hashing password", error: error });
         });
         
     } catch (error) {
         console.log(error);
-        res.status(500).json({ message: "Internal server error", error: error });
+        res.status(500).json({success: false, message: "Internal server error", error: error });
     }
 };
 
@@ -95,7 +100,7 @@ exports.forgotPassword = async (req, res) => {
       const token = generateResetToken(user._id, user.email);
       
       // Create a password reset link containing the token
-      const resetLink = `${process.env.CLIENT_URL}/reset-password?token=${token}`;
+      const resetLink = `${process.env.CLIENT_URL}/login/reset-password?token=${token}`;
       
       // Send the reset link via email
       await sendPasswordResetEmail(user.email, resetLink);

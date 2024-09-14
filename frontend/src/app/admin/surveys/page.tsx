@@ -17,20 +17,22 @@ interface Params {
   filter: string;
 }
 
+const defaultParams: Params = {
+  page: 1,
+  limit: 10,
+  sortBy: "createdAt",
+  sortOrder: "desc",
+  published: "all",
+  created_by: "rohitchand490@gmail.com",
+  filter: "",
+};
+
 function Page() {
-  const [queryParams, setQueryParams] = useState<Params>({
-    page: 1,
-    limit: 10,
-    sortBy: "name",
-    sortOrder: "asc",
-    published: "all",
-    created_by: "rohitchand490@gmail.com",
-    filter: "",
-  });
+  const [queryParams, setQueryParams] = useState<Params>(defaultParams);
 
   const [searchBarInput, setSearchBarInput] = useState("");
   const [published, setPublished] = useState("all");
-  const [sortSelect, setSortSelect] = useState("nameAsc");
+  const [sortSelect, setSortSelect] = useState("dateDesc");
 
   useEffect(() => {}, [queryParams]);
 
@@ -43,6 +45,13 @@ function Page() {
       sortOrder: sortSelect.includes("Asc") ? "asc" : "desc",
       page: 1, // Reset to first page when applying new filters
     }));
+  };
+
+  const handleClearFilters = () => {
+    setSearchBarInput("");
+    setPublished("all");
+    setSortSelect("dateDesc");
+    setQueryParams(() => defaultParams);
   };
 
   return (
@@ -102,6 +111,12 @@ function Page() {
                 width={24}
               />
               <p>Apply filters</p>
+            </ButtonFilled>
+            <ButtonFilled
+              className="text-[14px] font-semibold flex gap-2 items-center justify-center"
+              onClick={handleClearFilters}
+            >
+              <p>Clear Filters</p>
             </ButtonFilled>
           </div>
         </div>

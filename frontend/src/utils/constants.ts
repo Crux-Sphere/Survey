@@ -16,3 +16,9 @@ export const get_all_surveys = "api/survey/getAllSurveys";
 
 // questions
 export const ignore_nesting_forms = ["Contact Form", "Address"];
+
+//auth
+export const login = "api/auth/login";
+export const signup = "api/auth/signup";
+export const forgot_password = "api/auth/forgotPassword";
+export const reset_password = "api/auth/resetPassword";
