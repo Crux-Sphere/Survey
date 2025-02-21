@@ -107,7 +107,7 @@ function page() {
               label="Age"
               onChange={handleChangeOrder}
               size="small"
-              style={{zoom:'80%'}}
+              style={{ zoom: "80%" }}
             >
               <MenuItem value={"asc"}>Date DESC</MenuItem>
               <MenuItem value={"desc"}>desc</MenuItem>
@@ -115,6 +115,101 @@ function page() {
           </div>
         </div>
       </div>
+
+      <div className="bg-white rounded-md shadow-md p-3">
+        <div className="relative overflow-x-auto">
+          <table className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+            <thead className="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-700 dark:text-gray-400">
+              <tr>
+                <th scope="col" className="px-6 py-3">
+                  Names
+                </th>
+                <th scope="col" className="px-6 py-3">
+                  Responses
+                </th>
+                <th scope="col" className="px-6 py-3">
+                  Analytics
+                </th>
+                <th scope="col" className="px-6 py-3">
+                  AC list
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {!loading && data.length > 0 ? (
+                data.map((el: any, index: number) => (
+                  <tr
+                    className="odd:bg-white odd:dark:bg-gray-900 even:bg-gray-50 even:dark:bg-gray-800"
+                    onClick={() =>
+                      router.push(
+                        `/admin/report/survey-responses?survey_id=${el.survey_id}`
+                      )
+                    }
+                    key={index}
+                  >
+                    <td className="px-6 py-4 font-[500]">
+                      <p className="font-semibold text-blue-700 cursor-pointer">{el.surveyName}</p>
+                      <p className="text-[13px] text-my-gray-200">
+                        {formatDate(el.surveyCreatedAt)}
+                      </p>
+                    </td>
+
+                    <td className="px-6 py-4 font-[500]">
+                      <button
+                        onClick={() =>
+                          router.push(
+                            `/admin/data/survey-responses?survey_id=${el.survey_id}`
+                          )
+                        }
+                        className="col-span-1 flex justify-center items-center"
+                      >
+                        {el.responseCount}
+                      </button>
+                    </td>
+
+                    <td className="px-6 py-4 font-[500]">
+                      <BsPieChart
+                        size={24}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(
+                            `/admin/report/analytics?survey_id=${el.survey_id}`
+                          );
+                        }}
+                        className="cursor-pointer"
+                      />
+                    </td>
+
+                    <td className="px-6 py-4 font-[500]">
+                      <div className="col-span-1 flex">
+                        {!el.ac_list && <p></p>}
+                        {el.ac_list && el.ac_list.length > 0 ? (
+                          <p className="text-green-600 font-semibold">
+                            AC list included
+                          </p>
+                        ) : (
+                          <p className="text-primary-300 font-semibold">
+                            AC list not included
+                          </p>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <div className="flex justify-center items-center h-[30vh] w-full">
+                  <p>No survey with responses</p>
+                </div>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {loading && (
+        <Loader className="h-[50vh] w-full flex justify-center items-center text-primary-300" />
+      )}
 
       <div className="w-full  py-2 text-sm">
         <div className="grid grid-cols-4 text-white bg-dark-gray font-semibold px-8 py-[16px] rounded-tl-2xl rounded-tr-2xl border border-secondary-200">
@@ -127,9 +222,7 @@ function page() {
           </p>
           <p className="col-span-1 flex justify-center items-center">AC list</p>
         </div>
-        {loading && (
-          <Loader className="h-[50vh] w-full flex justify-center items-center text-primary-300" />
-        )}
+
         {!loading && data.length > 0 ? (
           data.map((el: any, index: number) => (
             <div
