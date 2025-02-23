@@ -248,7 +248,7 @@ function AllSurveys({ queryParams, setQueryParams, updated }: AllSurveysProps) {
   return (
     <div className="w-full flex-1 flex flex-col">
       <div
-        className={`w-[96%] mt-1 mx-auto text-sm pb-5  ${
+        className={`w-full mt-1 mx-auto text-sm pb-3  ${
           isSurveyManager ? "max-h-[65vh]" : "max-h-[60vh]"
         } `}
       >
@@ -534,17 +534,17 @@ function AllSurveys({ queryParams, setQueryParams, updated }: AllSurveysProps) {
       </div>
       {/* Pagination Controls */}
       {!loading && (
-        <div className="flex gap-3 items-center p-4 mt-auto bg-[#ECF0FA]">
+        <div className="flex gap-3 items-center pl-4 py-3 bg-[#fff] rounded-md shadow-md">
           {/* Limit Select */}
           <div>
-            <label htmlFor="limit-select" className="mr-2">
+            <label htmlFor="limit-select" className="mr-2 text-[13px]">
               Show:
             </label>
             <select
               id="limit-select"
               value={queryParams.limit}
               onChange={handleLimitChange}
-              className="p-2 border rounded-md"
+              className="p-2 border rounded-md  text-[13px]"
             >
               <option value={10}>10</option>
               <option value={20}>20</option>
@@ -554,7 +554,7 @@ function AllSurveys({ queryParams, setQueryParams, updated }: AllSurveysProps) {
           </div>
 
           {/* Navigation Arrows */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
             <button
               onClick={handlePreviousPage}
               disabled={queryParams.page === 1}
@@ -562,7 +562,7 @@ function AllSurveys({ queryParams, setQueryParams, updated }: AllSurveysProps) {
             >
               <IoIosArrowBack />
             </button>
-            <span>
+            <span className=" text-[13px]">
               Page {queryParams.page} of {totalPages}
             </span>
             <button

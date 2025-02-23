@@ -30,7 +30,7 @@ function SurveyHeader({ setUpdated }: props) {
 
   return (
     <header className="w-full">
-      <div className="w-full py-3 px-6 flex justify-between items-center">
+      <div className="w-full py-3 flex justify-between items-center">
         <h3 className="text-[18px] font-[600]">Surveys</h3>
         <div className="flex gap-2">
           <Button onClick={openModal} variant="contained" size="small" className="!capitalize gap-2">

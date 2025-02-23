@@ -9,6 +9,7 @@ import { importKaryakartas } from "@/networks/user_networks";
 import CustomModal from "../ui/Modal";
 import { PropagateLoader } from "react-spinners";
 import toast from "react-hot-toast";
+import Button from '@mui/material/Button';
 
 function KaryakartaHeader({ setReset }: { setReset: any }) {
   const router = useRouter();
@@ -58,27 +59,29 @@ function KaryakartaHeader({ setReset }: { setReset: any }) {
   };
 
   return (
-    <nav className="h-16 w-full py-3 px-8 flex justify-between">
-      <div className="text-my-gray-200">
-        <h1 className="text-2xl">All Karyakarta</h1>
-      </div>
+    <nav className="h-16 w-full py-3 flex justify-between items-center">
+      <h1 className="text-[18px] font-[600]">All Karyakarta</h1>
       <div className="flex justify-end space-x-3 text-xs">
-        <ButtonFilled
-          className="flex gap-2 items-center"
+        <Button
+          className="flex gap-2 items-center btn-custom bg-orange-600"
+          variant="contained"
+          size={"small"}
           onClick={() => {
             router.push("./karyakarta/add-karyakarta");
           }}
         >
           <IoIosAddCircle className="text-2xl" />
           Add Karyakarta
-        </ButtonFilled>
-        <ButtonFilled
-          className="flex gap-2 items-center"
+        </Button>
+        <Button
+          className="flex gap-2 items-center btn-custom !bg-green-600"
+          variant="contained"
+          size={"small"}
           onClick={() => setBoothModal(true)} // Open the modal on click
         >
           <CgImport className="text-2xl" />
           Import from Excel
-        </ButtonFilled>
+        </Button>
       </div>
 
       {/* Modal for File Upload */}
@@ -92,7 +95,9 @@ function KaryakartaHeader({ setReset }: { setReset: any }) {
               </h3>
             </div>
           )}
-          <h1 className="text-xl font-bold text-primary-300">Import Karyakartas</h1>
+          <h1 className="text-xl font-bold text-primary-300">
+            Import Karyakartas
+          </h1>
 
           {/* Drop Zone for File Upload */}
           <div

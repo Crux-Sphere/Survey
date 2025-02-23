@@ -211,90 +211,19 @@ function page() {
         <Loader className="h-[50vh] w-full flex justify-center items-center text-primary-300" />
       )}
 
-      <div className="w-full  py-2 text-sm">
-        <div className="grid grid-cols-4 text-white bg-dark-gray font-semibold px-8 py-[16px] rounded-tl-2xl rounded-tr-2xl border border-secondary-200">
-          <p className="col-span-1">Names</p>
-          <p className="col-span-1 flex justify-center items-center">
-            Responses
-          </p>
-          <p className="col-span-1 flex justify-center items-center">
-            Analytics
-          </p>
-          <p className="col-span-1 flex justify-center items-center">AC list</p>
-        </div>
-
-        {!loading && data.length > 0 ? (
-          data.map((el: any, index: number) => (
-            <div
-              onClick={() =>
-                router.push(
-                  `/admin/report/survey-responses?survey_id=${el.survey_id}`
-                )
-              }
-              key={index}
-              className="grid cursor-pointer grid-cols-4 p-4 border-l border-r border-b border-secondary-200 w-full bg-mid-gray"
-            >
-              <div className="col-span-1 flex flex-col">
-                <p className="font-semibold">{el.surveyName}</p>
-                <p className="text-[13px] text-my-gray-200">
-                  {formatDate(el.surveyCreatedAt)}
-                </p>
-              </div>
-              <button
-                onClick={() =>
-                  router.push(
-                    `/admin/data/survey-responses?survey_id=${el.survey_id}`
-                  )
-                }
-                className="col-span-1 flex justify-center items-center"
-              >
-                {el.responseCount}
-              </button>
-              <p className="col-span-1 flex justify-center items-center">
-                <BsPieChart
-                  size={24}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    router.push(
-                      `/admin/report/analytics?survey_id=${el.survey_id}`
-                    );
-                  }}
-                  className="cursor-pointer"
-                />
-              </p>
-              <div className="col-span-1 flex justify-center items-center">
-                {!el.ac_list && <p></p>}
-                {el.ac_list && el.ac_list.length > 0 ? (
-                  <p className="text-green-600 font-semibold">
-                    AC list included
-                  </p>
-                ) : (
-                  <p className="text-primary-300 font-semibold">
-                    AC list not included
-                  </p>
-                )}
-              </div>
-            </div>
-          ))
-        ) : (
-          <div className="flex justify-center items-center h-[30vh] w-full">
-            <p>No survey with responses</p>
-          </div>
-        )}
-      </div>
 
       {!loading && (
-        <div className="flex gap-3 items-center mt-auto pl-4 py-3 sticky bottom-0 left-0 bg-[#ECF0FA]">
+        <div className="flex gap-3 items-center pl-4 py-3 bg-[#fff] rounded-md shadow-md mt-3">
           {/* Limit Select */}
           <div>
-            <label htmlFor="limit-select" className="mr-2">
+            <label htmlFor="limit-select" className="mr-2 text-[13px]">
               Show:
             </label>
             <select
               id="limit-select"
               value={pageLimit}
               onChange={handleLimitChange}
-              className="p-2 border rounded-md"
+              className="p-2 border rounded-md text-[13px]"
             >
               <option value={10}>10</option>
               <option value={20}>20</option>
@@ -304,7 +233,7 @@ function page() {
           </div>
 
           {/* Navigation Arrows */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
             <button
               onClick={handlePreviousPage}
               disabled={page === 1}
@@ -312,7 +241,7 @@ function page() {
             >
               <IoIosArrowBack />
             </button>
-            <span>
+            <span className="text-[13px]">
               Page {page} of {totalResponsePages}
             </span>
             <button

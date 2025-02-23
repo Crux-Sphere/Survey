@@ -2,7 +2,6 @@ import React from 'react'
 import { PropagateLoader,PuffLoader } from 'react-spinners';
 import { twMerge } from 'tailwind-merge'
 
-
 interface LayoutProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   children: React.ReactNode;
   className? : string;

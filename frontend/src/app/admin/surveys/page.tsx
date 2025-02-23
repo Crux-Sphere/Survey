@@ -73,10 +73,10 @@ function Page() {
   };
 
   return (
-    <section className=" bg-[#ECF0FA] min-h-[calc(100vh-80px)] w-full flex flex-col">
+    <section className=" bg-[#ECF0FA] min-h-[calc(100vh-80px)] w-full flex flex-col px-8">
       {!isSurveyManager && <SurveyHeader setUpdated={setUpdatd} />}
 
-      <div className="p-3 text-sm text-my-gray-200 bg-white mx-5 rounded-md shadow-md my-2">
+      <div className="p-3 text-sm text-my-gray-200 bg-white  rounded-md shadow-md my-2">
         <div className="flex gap-10 justify-between items-center">
           <input
             className="w-[387px] formInput "

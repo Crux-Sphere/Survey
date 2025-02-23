@@ -14,12 +14,15 @@ import {
 import Loader from "@/components/ui/Loader";
 import { CgImport } from "react-icons/cg";
 import KaryakartaHeader from "@/components/karyakarta/KaryakartaHeader";
+import Button from "@mui/material/Button";
+import MenuItem from '@mui/material/MenuItem';
+import Select, { SelectChangeEvent } from '@mui/material/Select';
 
 function page() {
   const [users, setUsers] = useState<IUser[]>([]);
   const [searchBarInput, setSearchBarInput] = useState<string>("");
-  const [limit, setLimit] = useState<number>(10);
-  const [page, setPage] = useState<number>(1);
+  const [limit, setLimit] = useState<any>(10);
+  const [page, setPage] = useState<any>(1);
   const [totalPages, setTotalPages] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(false);
   const [reset, setReset] = useState<boolean>(false);
@@ -43,8 +46,8 @@ function page() {
   function handleEditUser(_id: string) {
     router.push(`/admin/karyakarta/add-karyakarta?_id=${_id}`);
   }
-  const handleLimitChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newLimit = parseInt(e.target.value, 10);
+  const handleLimitChange = (event: SelectChangeEvent) => {
+    const newLimit = parseInt(event.target.value, 10);
     setLimit(newLimit);
     setPage(1);
   };
@@ -75,29 +78,29 @@ function page() {
   };
 
   return (
-    <div className="w-full bg-[#ECF0FA] text-sm min-h-[calc(100vh-80px)]">
-      <KaryakartaHeader setReset={setReset}/>
+    <div className="w-full min-h-[calc(100vh-80px)] px-8">
+      <KaryakartaHeader setReset={setReset} />
 
-      <div className="p-3 text-sm text-my-gray-200 bg-white mx-5 rounded-xl my-2">
+      <div className="p-3 text-sm bg-white rounded-md shadow-md my-2">
         <div className="flex justify-between">
           <input
-            className="w-[387px] h-[42.5px] px-4 py-[10px] border border-secondary-200 rounded-md focus:outline-none text-[14px] text-secondary-300"
+            className="w-[387px] formInput "
             placeholder="Name / Username / Role"
             value={searchBarInput}
             onChange={(e) => setSearchBarInput(e.target.value)}
           />
-          <div className="flex space-x-3">
-            <ButtonFilled
+          <div className="flex space-x-2">
+            <Button
               onClick={() => {
                 getData();
               }}
-              className="text-[14px] font-semibold flex gap-2 items-center justify-center"
+              className="btn-custom !bg-orange-600 !text-white"
             >
               Search
-            </ButtonFilled>
+            </Button>
             <div className="flex space-x-3">
               <ButtonFilled
-                className="bg-dark-gray"
+                className="btn-custom !bg-dark-gray !text-white"
                 onClick={() => {
                   setSearchBarInput("");
                   setReset(!reset);
@@ -110,106 +113,121 @@ function page() {
         </div>
       </div>
 
-      <div className="w-[96%] mx-auto text-sm max-h-[60vh] overflow-auto vertical-scrollbar">
-        <div className="grid grid-cols-5 text-white bg-dark-gray sticky top-0 left-0 z-10 font-semibold py-[16px] rounded-tl-2xl rounded-tr-2xl border border-secondary-200">
-          <p className="col-span-1 flex justify-center items-center">Name</p>
-          <p className="col-span-1 flex justify-center items-center">
-            Username
-          </p>
-          <p className="col-span-1 flex justify-center items-center">Email</p>
-          <p className="col-span-1 flex justify-center items-center">Role</p>
-          <div className="flex col-span-1 gap-12 justify-center">
-            <p className="flex justify-center items-center">Status</p>
-            <p className="flex justify-center items-center">Action</p>
-          </div>
-        </div>
-        {loading && (
-          <Loader className="h-[50vh] flex justify-center items-center w-full" />
-        )}
-        {!loading && users && users.length !== 0 ? (
-          users.map((user, index) => (
-            <div
-              key={index}
-              className="bg-mid-gray border-2 grid p-2 grid-cols-5 text-center text-black"
-            >
-              <p className="col-span-1 flex justify-center items-center font-semibold">
-                {user.name}
-              </p>
-              <p className="col-span-1 flex justify-center items-center">
-                {user.username}
-              </p>
-              <p className="col-span-1 flex justify-center items-center">
-                {user.email}
-              </p>
-              <div className="col-span-1 flex justify-center items-center">
-                <div className="flex flex-wrap gap-1 justify-center">
-                  {user.role.map((role: any, roleIndex: number) => {
-                    return (
-                      <span key={roleIndex} className="whitespace-nowrap">
-                        {role.name}
-                        {roleIndex < user.role.length - 1 ? "," : ""}
-                      </span>
-                    );
-                  })}
+      <div className="card p-3 my-4 rounded-md shadow-md sm:rounded-lg bg-white">
+        <div className="relative overflow-x-auto">
+          <table className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+            <thead className="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-700 dark:text-gray-400">
+              <tr>
+                <th scope="col" className="px-6 py-3">
+                  Name
+                </th>
+                <th scope="col" className="px-6 py-3">
+                  User Name
+                </th>
+                <th scope="col" className="px-6 py-3">
+                  Email
+                </th>
+                <th scope="col" className="px-6 py-3">
+                  Role
+                </th>
+                <th scope="col" className="px-6 py-3">
+                  Status
+                </th>
+                <th scope="col" className="px-6 py-3">
+                  Action
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {!loading && users && users.length !== 0 ? (
+                users.map((user, index) => (
+                  <tr
+                    className="bg-white border-b dark:bg-gray-800 dark:border-gray-700"
+                    key={index}
+                  >
+                    <td className="px-6 py-2 font-[500]">{user.name}</td>
+
+                    <td className="px-6 py-2 font-[500]">{user.username}</td>
+
+                    <td className="px-6 py-2 font-[500]">{user.email}</td>
+
+                    <td className="px-6 py-2 font-[500]">
+                      {user.role.map((role: any, roleIndex: number) => {
+                        return (
+                          <span key={roleIndex} className="whitespace-nowrap">
+                            {role.name}
+                            {roleIndex < user.role.length - 1 ? "," : ""}
+                          </span>
+                        );
+                      })}
+                    </td>
+
+                    <td className="px-6 py-2 font-[500]">
+                      <Switch
+                        onChange={() =>
+                          doNothing({
+                            id: user._id,
+                            status:
+                              user.status === "active" ? "inactive" : "active",
+                            role: user.role[0]._id,
+                          })
+                        }
+                        checked={user.status === "active" ? true : false}
+                        onColor="#4CAF50"
+                        offColor="#DDDDDD"
+                        uncheckedIcon={false}
+                        checkedIcon={false}
+                        className="transition-switch duration-300 ease-in-out"
+                      />
+                    </td>
+
+                    <td className="px-6 py-2 font-[500]">
+                      <p
+                        className="p-3 cursor-pointer"
+                        onClick={() => {
+                          handleEditUser(user._id);
+                        }}
+                      >
+                        <FaRegEdit className="block mx-auto" size={18} />
+                      </p>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <div className="flex justify-center items-center h-[20vh] w-full">
+                  No karyakartas found
                 </div>
-              </div>
-              <div className="flex justify-center gap-12 items-center">
-                {/* <p className="p-3 text-white">{user.status === 'active' ? <Active /> : <Inactive />}</p> */}
-                <Switch
-                  onChange={() =>
-                    doNothing({
-                      id: user._id,
-                      status: user.status === "active" ? "inactive" : "active",
-                      role: user.role[0]._id,
-                    })
-                  }
-                  checked={user.status === "active" ? true : false}
-                  onColor="#4CAF50"
-                  offColor="#DDDDDD"
-                  uncheckedIcon={false}
-                  checkedIcon={false}
-                  className="transition-switch duration-300 ease-in-out"
-                />
-                <p
-                  className="p-3 cursor-pointer"
-                  onClick={() => {
-                    handleEditUser(user._id);
-                  }}
-                >
-                  <FaRegEdit className="block mx-auto" />
-                </p>
-              </div>
-            </div>
-          ))
-        ) : (
-          <div className="flex justify-center items-center h-[20vh] w-full">
-            No karyakartas found
-          </div>
-        )}
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {!loading && (
-        <div className="flex gap-3 items-center mt-4 pl-4 pb-4 sticky bottom-0 left-0 bg-[#ECF0FA]">
+        <div className="flex gap-3 items-center mt-4 pl-4 py-3 sticky bottom-2 left-0 bg-[#fff] rounded-md shadow-md">
           {/* Limit Select */}
           <div>
-            <label htmlFor="limit-select" className="mr-2">
+            <label htmlFor="limit-select" className="mr-2 text-[13px]">
               Show:
             </label>
-            <select
-              id="limit-select"
+            <Select
+              labelId="demo-simple-select-label"
+              id="demo-simple-select"
               value={limit}
               onChange={handleLimitChange}
-              className="p-2 border rounded-md"
+              size="small"
+              style={{zoom:'80%'}}
             >
-              <option value={10}>10</option>
-              <option value={20}>20</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-            </select>
+              <MenuItem value={10}>10</MenuItem>
+              <MenuItem value={20}>20</MenuItem>
+              <MenuItem value={50}>50</MenuItem>
+              <MenuItem value={100}>100</MenuItem>
+            </Select>
           </div>
 
           {/* Navigation Arrows */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
             <button
               onClick={handlePreviousPage}
               disabled={page === 1}
@@ -217,7 +235,7 @@ function page() {
             >
               <IoIosArrowBack />
             </button>
-            <span>
+            <span className="text-[13px]">
               Page {page} of {totalPages}
             </span>
             <button

@@ -22,17 +22,17 @@ function Pagination({setPage,setPageLimit,page,totalResponsePages,pageLimit}:{se
         }
       };
   return (
-     <div className="flex gap-3 items-center mt-auto pl-4 py-3 sticky bottom-0 left-0 bg-[#ECF0FA]">
+     <div className="flex gap-3 items-center pl-4 py-3 bg-[#fff] rounded-md shadow-md mt-3">
               {/* Limit Select */}
               <div>
-                <label htmlFor="limit-select" className="mr-2">
+                <label htmlFor="limit-select" className="mr-2 text-[13px]">
                   Show:
                 </label>
                 <select
                   id="limit-select"
                   value={pageLimit}
                   onChange={handleLimitChange}
-                  className="p-2 border rounded-md"
+                  className="p-2 border rounded-md text-[13px]"
                 >
                   <option value={10}>10</option>
                   <option value={20}>20</option>
@@ -42,7 +42,7 @@ function Pagination({setPage,setPageLimit,page,totalResponsePages,pageLimit}:{se
               </div>
     
               {/* Navigation Arrows */}
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
                 <button
                   onClick={handlePreviousPage}
                   disabled={page === 1}
@@ -50,7 +50,7 @@ function Pagination({setPage,setPageLimit,page,totalResponsePages,pageLimit}:{se
                 >
                   <IoIosArrowBack />
                 </button>
-                <span>
+                <span className='text-[13px]'>
                   Page {page} of {totalResponsePages}
                 </span>
                 <button

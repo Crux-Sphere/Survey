@@ -10,8 +10,9 @@ import Switch from "react-switch";
 import { IoIosArrowBack, IoIosArrowForward } from "react-icons/io";
 import Loader from "@/components/ui/Loader";
 import toast from "react-hot-toast";
-import MenuItem from '@mui/material/MenuItem';
-import Select, { SelectChangeEvent } from '@mui/material/Select';
+import MenuItem from "@mui/material/MenuItem";
+import Select, { SelectChangeEvent } from "@mui/material/Select";
+import Button from "@mui/material/Button";
 
 function page() {
   const [users, setUsers] = useState<any[]>([]);
@@ -65,15 +66,18 @@ function page() {
     }
   };
   return (
-    <div className="w-full px-8 py-3">
+    <div className="w-full px-8 py-2">
       <nav className="h-16 w-full py-1 pt-0 flex justify-between items-center">
         <h3 className="text-[18px] font-[600]">Users</h3>
         <div className="flex justify-end space-x-3 text-xs">
-          <ButtonFilled
+          <Button
+            variant="contained"
+            className="!capitalize"
+            size="small"
             onClick={() => router.push("/admin/users/manage-roles")}
           >
             Manage Roles
-          </ButtonFilled>
+          </Button>
           {/* <ButtonFilled
             onClick={() => {
               router.push("./users/add-multiple-users");
@@ -81,13 +85,17 @@ function page() {
           >
             Add Multiple Users
           </ButtonFilled> */}
-          <ButtonFilled
+          <Button
+            variant="contained"
+            className="!capitalize"
+            color="success"
+            size="small"
             onClick={() => {
               router.push("./users/add-user");
             }}
           >
             Add User
-          </ButtonFilled>
+          </Button>
           {/* <ButtonFilled>Export Users</ButtonFilled> */}
         </div>
       </nav>
@@ -207,20 +215,20 @@ function page() {
       </div>
 
       {!loading && (
-        <div className="flex gap-3 items-center mt-4 pl-4 py-3 sticky bottom-0 left-0 bg-[#fff]">
+        <div className="flex gap-3 items-center mt-4 pl-4 py-3 sticky shadow-md bottom-0 left-0 bg-[#fff]">
           {/* Limit Select */}
           <div>
             <label htmlFor="limit-select" className="mr-2 text-[13px]">
               Show:
             </label>
-           
+
             <Select
               labelId="demo-simple-select-label"
               id="demo-simple-select"
               value={limit}
               onChange={handleLimitChange}
               size="small"
-              style={{zoom:'80%'}}
+              style={{ zoom: "80%" }}
             >
               <MenuItem value={10}>10</MenuItem>
               <MenuItem value={20}>20</MenuItem>
