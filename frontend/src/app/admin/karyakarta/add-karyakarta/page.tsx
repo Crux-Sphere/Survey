@@ -28,6 +28,18 @@ const inputs = [
     placeholder: "Name",
   },
   {
+    label: "Caste",
+    name: "caste",
+    type: "text",
+    placeholder: "Surname",
+  },
+  {
+    label: "Voter Serial Number",
+    name: "voter_serial_no",
+    type: "text",
+    placeholder: "Voter Serial Number",
+  },
+  {
     label: "Email",
     name: "email",
     type: "email",
@@ -44,7 +56,20 @@ const inputs = [
     name: "confirm_password",
     type: "password",
     placeholder: "Confirm password",
-  }
+  },
+  {
+    label: "Phone Number",
+    name: "phone_number",
+    type: "text",
+    placeholder: "123123123",
+  },
+  {
+    label: "Booth Number",
+    name: "booth_no",
+    type: "text",
+    placeholder: "Booth Number",
+  },
+  
 ];
 function Page() {
   const [userData, setUserData] = useState<any>();

@@ -146,7 +146,7 @@ function Page() {
   }
 
   async function getUsers() {
-    setLoading(true);
+    // setLoading(true);
     const response = await getAllUsers({ selectedRole: surveyCollectorId });
     console.log("users-------->", response.data);
     setUsers(response.data);
@@ -160,7 +160,7 @@ function Page() {
     });
     console.log("panna below-------->", response);
     setPannaPramukh(response);
-    setLoading(false);
+    // setLoading(false);
   }
 
   const openModal = () => {

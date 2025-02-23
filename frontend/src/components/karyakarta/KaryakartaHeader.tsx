@@ -47,8 +47,10 @@ function KaryakartaHeader({ setReset }: { setReset: any }) {
 
     try {
       const response = await importKaryakartas(formData);
-      console.log("Import Response:", response.data);
-      toast.success("Karyakartas imported successfully!");
+      console.log("Import Response:", response);
+      if(response.success){
+        toast.success("Karyakartas imported successfully!");
+      }
       setBoothModal(false); // Close the modal after successful upload
     } catch (error: any) {
       console.error("Import Error:", error.response?.data);

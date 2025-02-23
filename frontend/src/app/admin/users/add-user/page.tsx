@@ -124,7 +124,12 @@ function Page() {
       console.log("userData::", userData);
       Object.keys(userData).forEach((key: any) => {
         if (key === "password") return;
-        setValue(key, userData[key]);
+        if(key === "role"){
+          setValue(key, userData[key][0]);
+        }
+        else{
+          setValue(key, userData[key]);
+        }
       });
     }
   }, [userData]);
@@ -193,7 +198,7 @@ function Page() {
                   ].map((field, index) => (
                     <div className="flex w-full space-y-2 gap-3" key={index}>
                       <div className="w-[20%] py-2">
-                        <label className="block  font-medium">
+                        <label className="block  font-medium ">
                           {field.label}
                         </label>
                       </div>
@@ -307,18 +312,18 @@ function Page() {
                         return (
                           <div
                             key={role._id}
-                            className="flex items-center space-x-2"
+                            className="flex items-center space-x-2 w-full"
                           >
                             <input
                               id={role.name} // Match the label's htmlFor attribute
                               type="radio"
                               value={role._id}
                               {...register("role", { required: true })}
-                              className="appearance-none w-4 h-4 border-2 border-primary-300 checked:bg-primary-100 checked:text-white rounded-full mt-1"
+                              className="flex-shrink-0 appearance-none w-4 h-4 border-2 border-primary-300 checked:bg-primary-100 checked:text-white rounded-full mt-1"
                             />
                             <label
                               htmlFor={role.name}
-                              className="font-medium cursor-pointer"
+                              className="font-medium cursor-pointer whitespace-nowrap"
                             >
                               {role.name}
                             </label>
@@ -333,56 +338,7 @@ function Page() {
                     </div>
                   </div>
                 )}
-                {/* Permissions */}
-
-                {/* <div className="space-y-2 mt-3 w-full rounded-[20px] border-2 p-4">
-                  {[
-                    { label: "Auto Assign Survey", name: "auto_assign_survey" },
-                    {
-                      label: "View Own Collected Data",
-                      name: "view_own_collected_data",
-                    },
-                    {
-                      label: "Prevent Data Download",
-                      name: "prevent_data_download",
-                    },
-                    {
-                      label: "Prevent Data Analytics",
-                      name: "prevent_data_analytics",
-                    },
-                    {
-                      label: "Prevent Spatial Report",
-                      name: "prevent_spatial_report",
-                    },
-                    {
-                      label: "Remove Audio Recording Access",
-                      name: "remove_audio_recording_access",
-                    },
-                    { label: "View Pending Data", name: "view_pending_data" },
-                  ].map((permission) => (
-                    <div
-                      key={permission.name}
-                      className="flex items-center w-full"
-                    >
-                      <div className="flex space-x-2 items-center w-1/2">
-                        <input
-                          id={permission.name} // Match the label's htmlFor attribute
-                          type="checkbox"
-                          {...register(`${permission.name as keyof IUser}`, {
-                            required: false,
-                          })}
-                          className="appearance-none cursor-pointer w-4 h-4 border-2 border-primary-300 checked:bg-primary-100 checked:text-white rounded-full mt-1"
-                        />
-                        <label
-                          htmlFor={permission.name}
-                          className=" font-medium cursor-pointer"
-                        >
-                          {permission.label}
-                        </label>
-                      </div>
-                    </div>
-                  ))}
-                </div> */}
+               
               </div>
             </div>
 

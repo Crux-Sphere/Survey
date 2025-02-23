@@ -57,13 +57,13 @@ function ImportSurveyModal({
         const seen: any = {}; // Hashmap to track unique pairs
 
         jsonData.forEach((item: any) => {
-          const key = `${item.AC_NO}-${item.SECTION_NO}`;
+          const key = `${item.AC_NO}-${item.BOOTH_NO}`;
           if (!seen[key]) {
             seen[key] = true;
             uniquePairs.push({
               AC_NO: item.AC_NO,
-              SECTION_NO: item.BOOTH_NO,
-              // SECTION_NO: item.SECTION_NO,
+              BOOTH_NO: item.BOOTH_NO,
+              // BOOTH_NO: item.BOOTH_NO,
             });
           }
         });
@@ -73,7 +73,7 @@ function ImportSurveyModal({
           if (!ac_obj[item.AC_NO]) {
             ac_obj[item.AC_NO] = [];
           }
-          ac_obj[item.AC_NO] = [...ac_obj[item.AC_NO], item.SECTION_NO];
+          ac_obj[item.AC_NO] = [...ac_obj[item.AC_NO], item.BOOTH_NO];
         });
         console.log("ac_object is --->", ac_obj);
         const ac_list = Object.keys(ac_obj).map((key) => ({
@@ -86,7 +86,7 @@ function ImportSurveyModal({
           const questions: any[] = [];
           const responseObj = jsonData[0];
           Object.keys(responseObj).forEach((key, index) => {
-            if (["AC_NO", "SECTION_NO"].includes(key)) return;
+            if (["AC_NO", "BOOTH_NO"].includes(key)) return;
             const questionObj = {
               question_id: index + 10,
               type: "Single line Text Input",
@@ -119,7 +119,7 @@ function ImportSurveyModal({
               const responses: any = [];
 
               Object.keys(data).forEach((key, ind) => {
-                if (["AC_NO", "SECTION_NO"].includes(key)) return;
+                if (["AC_NO", "BOOTH_NO"].includes(key)) return;
                 let obj: any = {};
                 obj.response = String(data[key]);
                 obj.question_id = ind + 10;
@@ -135,7 +135,7 @@ function ImportSurveyModal({
                 phone_no: data.MOBILE_NO,
                 name: data["Voter Name"],
                 // ac_no: data.AC_NO,
-                // booth_no: data.SECTION_NO,
+                // booth_no: data.BOOTH_NO,
                 // house_no: data.C_HOUSE_NO,
                 // phone_no: data.MOBILE_NO,
                 // name: data.FM_NAME_EN,

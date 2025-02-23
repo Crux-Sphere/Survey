@@ -110,7 +110,7 @@ function Page() {
                       <span className="text-primary-300 font-bold">
                         AC_NO: {item.ac_no}
                       </span>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 flex-wrap">
                         {
                           item.booth_numbers.map((booth:string)=>booth.trim().length > 0 ? <span>{booth},</span>:null)
                         }

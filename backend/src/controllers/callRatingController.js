@@ -47,19 +47,32 @@ exports.createCallRating = async (req, res) => {
 // Read all CallRatings
 exports.getAllCallRatings = async (req, res) => {
   try {
-    const callRatings = await CallRating.find().exec();
+    console.log("hitting all call ratings")
+    // Pagination
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+   const callRatings = await getRecentCallRatings();
+
+    const totalCallRatings = await CallRating.countDocuments();
+    const totalPages = Math.ceil(totalCallRatings / limit);
+
     res.status(200).json({
       success: true,
       data: callRatings,
+      totalCallRatings,
+      totalPages,
     });
   } catch (err) {
     res.status(500).json({
-      success: true,
+      success: false,
       message: "Error retrieving Call Ratings",
       error: err.message,
     });
   }
 };
+
 
 // Read a single CallRating by ID
 exports.getCallRatingById = async (req, res) => {
@@ -173,4 +186,26 @@ exports.getDashboardData = async (req, res) => {
     return res.status(500).json({ success: false, message: "Server Error" });
   }
 };
+
+// exports.getCallRatings = async (req, res) => {
+//   try {
+//     //adding pagination
+//     const page = parseInt(req.query.page) || 1;
+//     const limit = parseInt(req.query.limit) || 10;
+//     const skip = (page - 1) * limit;
+    
+//     const callRatings = await CallRating.find().limit(limit).skip(skip).exec();
+
+//     res.status(200).json({
+//       success: true,
+//       data: callRatings,
+//     });
+//   } catch (err) {
+//     res.status(500).json({
+//       success: true,
+//       message: "Error retrieving Call Ratings",
+//       error: err.message,
+//     });
+//   }
+// }
 

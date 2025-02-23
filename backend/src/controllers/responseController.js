@@ -333,8 +333,10 @@ exports.getAllResponses = async (req, res) => {
       limit = 4,
     } = req.query;
     // console.log("query is------>", req.query);
+    console.log("finding survey")
     const selectedSurvey = await Survey.findById(surveyId);
     const question_type_map = {};
+    console.log("creating survey question type map")
     selectedSurvey.questions.forEach((surv) => {
       const key = surv.question_id;
       const val = surv.type;
@@ -516,15 +518,27 @@ exports.getAllResponses = async (req, res) => {
                   ["Number Input", "Phone Number"],
                 ],
               },
+              // then: {
+              //   $cond: {
+              //     if: {
+              //       $regexMatch: {
+              //         input: { $toString: "$responses.response" },
+              //         regex: new RegExp(
+              //           escapeRegex("$responses.response"),
+              //           "i",
+              //         ),
+              //       },
+              //     },
+              //     then: { $toDouble: "$responses.response" },
+              //     else: "$responses.response",
+              //   },
+              // },
               then: {
                 $cond: {
                   if: {
                     $regexMatch: {
                       input: { $toString: "$responses.response" },
-                      regex: new RegExp(
-                        escapeRegex("$responses.response"),
-                        "i",
-                      ),
+                      regex: "^[0-9]+(\\.[0-9]+)?$",
                     },
                   },
                   then: { $toDouble: "$responses.response" },
@@ -566,10 +580,6 @@ exports.getAllResponses = async (req, res) => {
       },
     ];
 
-    responseFilters.forEach((resp) =>
-      console.log(resp.question_id, "-->", resp.response),
-    );
-
     // Add additional match stage if there are filters
     if (responseFilters.length > 0) {
       aggregationPipeline.push({
@@ -591,6 +601,8 @@ exports.getAllResponses = async (req, res) => {
 
     // Calculate total responses count
     console.log(JSON.stringify(aggregationPipeline, null, 2));
+
+    console.log("calculating total count")
     const totalResponses = await Responses.aggregate([
       ...aggregationPipeline,
       { $count: "totalResponses" },
@@ -622,8 +634,10 @@ exports.getAllResponses = async (req, res) => {
 
       aggregationPipeline.push({ $skip: skip }, { $limit: limitNum });
 
+      console.log("calculating final responses")
       const filteredResponse = await Responses.aggregate(aggregationPipeline).allowDiskUse(true);
 
+      console.log("taking panna")
       const fin = filteredResponse.map((f) =>
         Responses.findById(f._id).populate("panna_pramukh_assigned"),
       );

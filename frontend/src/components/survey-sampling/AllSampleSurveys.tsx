@@ -51,7 +51,6 @@ function AllSampleSurveys() {
       className={`w-[full py-5 flex flex-col overflow-y-auto vertical-scrollbar px-8`}
     >
       {/* navabr */}
-      {sampleSurveys && sampleSurveys.length > 0 && (
         <div className="flex justify-between items-center">
           <h1 className="text-[18px] font-semibold">Sample Surveys</h1>
           <Button
@@ -61,7 +60,6 @@ function AllSampleSurveys() {
             <IoIosAddCircle className="text-2xl" /> Add Sample
           </Button>
         </div>
-      )}
       {loading && (
         <Loader className="h-[40vh] w-full flex justify-center items-center text-primary-300" />
       )}
