@@ -61,6 +61,7 @@ function Page() {
   const [pannaPramukh, setPannaPramukh] = useState<any>(null);
   const [selectedPanna, setSelectedPanna] = useState<string | null>(null);
   const [surveyQuestions, setSurveyQuestions] = useState<any>(null);
+  const [coordinates,setCoordinates] = useState<any>({lat:0,lng:0})
 
   //  pagination
   const [totalResponsePages, setTotalResponsePages] = useState<number>(1);
@@ -86,7 +87,7 @@ function Page() {
   const router = useRouter();
   const { isLoaded } = useJsApiLoader({
     id: "google-map-script",
-    googleMapsApiKey: "AIzaSyAAOwDBvpg5ZDv5JFG-CoDW23GsKkOPeuA",
+    googleMapsApiKey: "AIzaSyAVRCw7DcpEsnXzMvUq5SpPwvPusPfI7DI",
   });
   useEffect(() => {
     getQuestions();
@@ -396,6 +397,7 @@ function Page() {
           setAssignedMode={setAssignMode}
           getUserResponses={getUserResponses}
           setSelectedPanna={setSelectedPanna}
+          setCoordinates={setCoordinates}
         />
       ) : (
         !loading && (
@@ -476,6 +478,7 @@ function Page() {
 
       {/* map modal */}
       <MapModal
+        coordinates={coordinates}
         isLoaded={isLoaded}
         mapModalIsOpen={mapModalIsOpen}
         setMapModalIsOpen={setMapModalIsOpen}

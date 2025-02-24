@@ -48,14 +48,14 @@ const withAuth = (WrappedComponent: any) => {
       console.log("role name is -- >",name)
       // Define allowed paths for each role
       const allowedPaths: Record<string, string[]> = {
-        "Operation team": ["/admin/surveys", "/admin/data", "/admin/todos","/admin/support"],
-        Supervisor: ["/admin/collectors", "/admin/collector-surveys","/admin/support"],
-        "Survey Manager": ["/admin/surveys","/admin/support","/admin/survey-manager/survey-response"],
-        "Quality Check": ["/admin/quality-check-surveys","/admin/support"],
-        "Data Analyst": ["/admin/data","/admin/support"],
-        "Data Manager": ["/admin/data","/admin/support"],
-        "Support Executive" : ["/admin/support"],
-        "VRM Team Manager":["/admin/vrm-dashboard","/admin/support"]
+        "Operation team": ["/admin/surveys", "/admin/data", "/admin/todos","/admin/support","/admin/tasks"],
+        Supervisor: ["/admin/collectors", "/admin/collector-surveys","/admin/support","/admin/tasks"],
+        "Survey Manager": ["/admin/surveys","/admin/support","/admin/survey-manager/survey-response","/admin/tasks"],
+        "Quality Check": ["/admin/quality-check-surveys","/admin/support","/admin/tasks"],
+        "Data Analyst": ["/admin/data","/admin/support","/admin/tasks"],
+        "Data Manager": ["/admin/data","/admin/support","/admin/tasks"],
+        "Support Executive" : ["/admin/support","/admin/tasks"],
+        "VRM Team Manager":["/admin/vrm-dashboard","/admin/support","/admin/tasks"]
       };
     
       const allowedForRole = allowedPaths[name] || [];

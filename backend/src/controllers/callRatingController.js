@@ -44,24 +44,66 @@ exports.createCallRating = async (req, res) => {
   }
 };
 
-// Read all CallRatings
 exports.getAllCallRatings = async (req, res) => {
   try {
-    console.log("hitting all call ratings")
+    console.log("Hitting all call ratings");
+
     // Pagination
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-   const callRatings = await getRecentCallRatings();
+    // Filters
+    const ratingFilter = req.query.rating; // "positive", "neutral", "negative"
+    const dateFilter = req.query.date; // "YYYY-MM-DD"
 
-    const totalCallRatings = await CallRating.countDocuments();
+    console.log("query is -->",req.query)
+    let matchStage = {}; // Default filter
+
+    // Apply rating filter
+    if (ratingFilter) {
+      matchStage.rating = ratingFilter;
+    }
+
+    // Apply date filter (only match documents from selected date)
+    if (dateFilter) {
+      const startOfDay = new Date(dateFilter);
+      startOfDay.setUTCHours(0, 0, 0, 0); // Ensure UTC midnight
+    
+      const endOfDay = new Date(startOfDay);
+      endOfDay.setUTCHours(23, 59, 59, 999); // End of UTC day
+    
+      matchStage.createdAt = { $gte: startOfDay, $lte: endOfDay };
+    }
+
+    console.log("match stage is -->",matchStage)
+
+    // Aggregation Pipeline
+    const callRatings = await CallRating.aggregate([
+      { $match: matchStage }, // Apply filters
+      { $sort: { createdAt: -1 } }, // Sort by latest
+      { $skip: skip }, // Pagination skip
+      { $limit: limit }, // Limit results
+      {
+        $lookup: {
+          from: "user99",
+          localField: "user_id",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      { $unwind: { path: "$user", preserveNullAndEmptyArrays: true } },
+    ]);
+
+    // Get total count after filtering
+    const totalCallRatings = await CallRating.countDocuments(matchStage);
     const totalPages = Math.ceil(totalCallRatings / limit);
 
     res.status(200).json({
       success: true,
       data: callRatings,
       totalCallRatings,
+      currentPage: page,
       totalPages,
     });
   } catch (err) {

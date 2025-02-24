@@ -112,12 +112,17 @@ exports.updateTodo = async (req, res) => {
 
 exports.getAllTodos = async (req, res) => {
   try {
+    console.log("hitting get all todos")
     let { filters = {}, page = 1, limit = 10, title } = req.query;
     page = parseInt(page);
     limit = parseInt(limit);
 
     filters = typeof filters === "string" ? JSON.parse(filters) : filters;
     console.log(filters);
+
+    if (filters.assigned_to) {
+      filters.assigned_to = { $in: [filters.assigned_to] };
+    }
 
     if (filters.due_date) {
       console.log("Due date is there:", filters.due_date);
@@ -131,7 +136,7 @@ exports.getAllTodos = async (req, res) => {
       };
     }
 
-    console.log("after editing ", filters);
+    console.log("Filters:", filters);
 
     if (title) {
       filters.title = { $regex: title, $options: "i" };

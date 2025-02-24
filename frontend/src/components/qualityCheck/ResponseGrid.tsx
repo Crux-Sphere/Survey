@@ -31,6 +31,7 @@ interface ResponseTableProps {
   getUserResponses: any;
   setSelectedPanna: (val: string | null) => void;
   update:(val:boolean)=>void
+  setResponses :any
 }
 
 function ResponseGrid({
@@ -39,8 +40,10 @@ function ResponseGrid({
   setSelectedResponse,
   setResponseModalIsOpen,
   setMore,
+  getUserResponses,
   more,
   update,
+  setResponses
 }: ResponseTableProps) {
   const [localResponses, setLocalResponses] = useState(responses);
   const [notes, setNotes] = useState<string | null>(null);
@@ -76,6 +79,7 @@ function ResponseGrid({
 
     if (response.success) {
       toast.success("Successfully saved quality remark!");
+      getUserResponses()
     } else {
       toast.error("Failed to save!");
     }

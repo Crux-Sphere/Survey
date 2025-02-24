@@ -59,6 +59,10 @@ function Page() {
   const [pannaPramukh, setPannaPramukh] = useState<any>(null);
   const [selectedPanna, setSelectedPanna] = useState<string | null>(null);
   const [surveyQuestions, setSurveyQuestions] = useState<any>(null);
+  const [coordinates, setCoordinates] = useState<{ lat: 0; lng: 0 }>({
+    lat: 0,
+    lng: 0,
+  });
 
   //  pagination
   const [totalResponsePages, setTotalResponsePages] = useState<number>(1);
@@ -77,7 +81,7 @@ function Page() {
   const router = useRouter();
   const { isLoaded } = useJsApiLoader({
     id: "google-map-script",
-    googleMapsApiKey: "AIzaSyAAOwDBvpg5ZDv5JFG-CoDW23GsKkOPeuA",
+    googleMapsApiKey: "AIzaSyAVRCw7DcpEsnXzMvUq5SpPwvPusPfI7DI",
   });
   useEffect(() => {
     getQuestions();
@@ -140,14 +144,14 @@ function Page() {
   }
 
   async function getUsers() {
-    setLoading(true);
+    // setLoading(true);
     const response = await getAllUsers({ selectedRole: surveyCollectorId });
     console.log("users-------->", response.data);
     setUsers(response.data);
-    setLoading(false);
+    // setLoading(false);
   }
   async function handleGetPannaPramukh() {
-    setLoading(true);
+    // setLoading(true);
     console.log("ac list is coming  --->", acList);
     const response = await getPannaPramukhByAcList({
       ac_list: acList,
@@ -155,7 +159,7 @@ function Page() {
     });
     console.log("panna below-------->", response);
     setPannaPramukh(response);
-    setLoading(false);
+    // setLoading(false);
   }
 
   const openModal = () => {
@@ -368,6 +372,7 @@ function Page() {
           setResponseModalIsOpen={setResponseModalIsOpen}
           setSelectedResponse={setSelectedResponse}
           users={users}
+          setResponses = {setResponses}
           assignMode={assignMode}
           setAssignedMode={setAssignMode}
           getUserResponses={getUserResponses}

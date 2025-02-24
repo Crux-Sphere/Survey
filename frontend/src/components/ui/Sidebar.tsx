@@ -87,6 +87,7 @@ function Sidebar({ sidebarOpen, onSidebarToggle }: any) {
   if (user?.role) {
     const roleName = user.role.map((el: any) => el.name);
     console.log("roleNmae are ---->", roleName);
+
     if (roleName.includes("Operation team")) {
       SidebarScreens = SidebarScreens.filter(
         (item: any) => item.name !== "Karyakarta" && item.name !== "Users"
@@ -136,7 +137,7 @@ function Sidebar({ sidebarOpen, onSidebarToggle }: any) {
         path: "/admin/vrm-dashboard",
         tooltip: "VRM Dashboard",
       });
-    } else {
+    }else {
       SidebarScreens.push(
         {
           icon: <FaRegUser size={17}/>,
@@ -152,6 +153,16 @@ function Sidebar({ sidebarOpen, onSidebarToggle }: any) {
         }
       );
     }
+
+    if(!roleName.includes("Admin")){
+      console.log("adding tasks")
+      SidebarScreens.push({
+        icon: <LuListTodo size={20} />,
+        name: "Tasks",
+        path: "/admin/tasks",
+        tooltip: "Tasks",
+      });
+    } 
   }
   function getSidebarButtonClass(el: any) {
     return `relative flex rounded-md ${

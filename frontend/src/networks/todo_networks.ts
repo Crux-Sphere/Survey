@@ -53,6 +53,7 @@ export const deleteTodo = async (params: any) => {
     }
   };
 export const getAllTodos = async (params:any) => {
+  console.log("params from todos network-->",params)
     try {
       const bearerToken = localStorage.getItem("token");
       const options = {

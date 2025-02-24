@@ -2,8 +2,6 @@
 
 import { truncateText, formatDate } from "@/utils/common_functions";
 import React, { useState } from "react";
-import { FaEye } from "react-icons/fa";
-import { FaLocationDot } from "react-icons/fa6";
 import ButtonFilled from "../ui/buttons/ButtonFilled";
 import toast from "react-hot-toast";
 import { updateKaryakartas } from "@/networks/user_networks";
@@ -11,6 +9,7 @@ import { useSearchParams } from "next/navigation";
 import Response from "./Response";
 import { IoLocationOutline } from "react-icons/io5";
 import { FaRegEye } from "react-icons/fa";
+import { useJsApiLoader } from "@react-google-maps/api";
 
 
 interface ResponseTableProps {
@@ -29,6 +28,7 @@ interface ResponseTableProps {
   selectedPanna: string | null;
   getUserResponses: any;
   setSelectedPanna: (val: string | null) => void;
+  setCoordinates?:any
 }
 function ResponseTable({
   responses,
@@ -43,8 +43,14 @@ function ResponseTable({
   selectedPanna,
   getUserResponses,
   setSelectedPanna,
+  setCoordinates
 }: ResponseTableProps) {
   console.log("all responses /////////////// ", responses);
+
+  const { isLoaded } = useJsApiLoader({
+    id: "google-map-script",
+    googleMapsApiKey: "AIzaSyAVRCw7DcpEsnXzMvUq5SpPwvPusPfI7DI",
+  });
 
   const [startIndex, setStartIndex] = useState<number | null>(null);
   const [endIndex, setEndIndex] = useState<number | null>(null);
@@ -229,6 +235,10 @@ function ResponseTable({
                     className="w-10 p-0 cursor-pointer flex justify-center items-center rounded-full h-10"
                     onClick={(e) => {
                       e.stopPropagation();
+                      console.log("clicked on -->",response.location_data?.latitude,response.location_data?.longitude)
+                      const lat = response.location_data?.latitude || 0;
+                      const lng = response.location_data?.longitude || 0;
+                      setCoordinates({lat,lng});
                       setMapModalIsOpen(true);
                     }}
                   >
