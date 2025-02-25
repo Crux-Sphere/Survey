@@ -50,7 +50,7 @@ function ImportSurveyModal({
         const workbook = XLSX.read(data, { type: "array" });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
-        jsonData = XLSX.utils.sheet_to_json(worksheet);
+        jsonData = XLSX.utils.sheet_to_json(worksheet,{ defval: null });
         console.log("json data iis ------->", jsonData);
         console.log("json data length iis ------->", jsonData.length);
         const uniquePairs: any = [];
@@ -63,7 +63,6 @@ function ImportSurveyModal({
             uniquePairs.push({
               AC_NO: item.AC_NO,
               BOOTH_NO: item.BOOTH_NO,
-              // BOOTH_NO: item.BOOTH_NO,
             });
           }
         });
@@ -81,6 +80,8 @@ function ImportSurveyModal({
           booth_numbers: ac_obj[key],
         }));
         console.log("ac_list is ===>", ac_list);
+
+        console.log(jsonData)
 
         if (user) {
           const questions: any[] = [];
@@ -100,6 +101,8 @@ function ImportSurveyModal({
             };
             questions.push(questionObj);
           });
+
+          console.log("questions are --->", questions);
           const params = {
             name,
             ac_list,
@@ -117,7 +120,6 @@ function ImportSurveyModal({
             const allResponses: any = [];
             jsonData.forEach((data: any, index: number) => {
               const responses: any = [];
-
               Object.keys(data).forEach((key, ind) => {
                 if (["AC_NO", "BOOTH_NO"].includes(key)) return;
                 let obj: any = {};
