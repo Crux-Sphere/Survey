@@ -2,9 +2,6 @@
 
 import { useEffect, useState } from "react";
 import SurveyHeader from "@/components/surveys/SurveyHeader";
-import ButtonFilled from "@/components/ui/buttons/ButtonFilled";
-import filter from "../../../../public/icons/Filter.png";
-import Image from "next/image";
 import AllSurveys from "@/components/surveys/AllSurveys";
 import useUser from "@/hooks/useUser";
 import Select, { SelectChangeEvent } from "@mui/material/Select";

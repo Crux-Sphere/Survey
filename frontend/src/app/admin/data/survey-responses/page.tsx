@@ -252,7 +252,7 @@ function Page() {
 
   return (
     <div className="flex flex-col w-full px-8">
-      <nav className="w-full py-3 flex flex-col gap-3">
+      <nav className="w-full py-3 px-3 flex flex-col gap-3">
         <h3 className="text-[18px] font-[500]">Survey Response</h3>
 
         <div className="flex w-full gap-12">
@@ -315,7 +315,7 @@ function Page() {
                   </ButtonFilled>
                 </div>
               </div>
-            </div>
+            </div>``
 
             <div className="flex gap-5 items-center pt-4">
               {/* Selected User */}

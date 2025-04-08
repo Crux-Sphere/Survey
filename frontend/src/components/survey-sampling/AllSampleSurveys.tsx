@@ -11,6 +11,8 @@ import ChooseSurveyModal from "./ChooseSurveyModal";
 import { useRouter } from "next/navigation";
 import Pagination from "../ui/pagination/Pagination";
 import Button from "@mui/material/Button";
+import { CgImport } from "react-icons/cg";
+import ImportSampleSurveyModal from "./ImportSampleSurveyModal";
 
 function AllSampleSurveys() {
   // states
@@ -51,15 +53,16 @@ function AllSampleSurveys() {
       className={`w-[full py-5 flex flex-col overflow-y-auto vertical-scrollbar px-8`}
     >
       {/* navabr */}
-        <div className="flex justify-between items-center">
-          <h1 className="text-[18px] font-semibold">Sample Surveys</h1>
-          <Button
-            onClick={handleChooseSurvey}
-            className="flex gap-1 items-center btn-custom !bg-orange-600 !text-white"
-          >
-            <IoIosAddCircle className="text-2xl" /> Add Sample
-          </Button>
-        </div>
+      <div className="flex justify-between items-center">
+        <h1 className="text-[18px] font-semibold">Sample Surveys</h1>
+        <Button
+          onClick={handleChooseSurvey}
+          className="flex gap-1 items-center btn-custom !bg-orange-600 !text-white"
+        >
+          <CgImport size={18} />
+          Import Sample survey
+        </Button>
+      </div>
       {loading && (
         <Loader className="h-[40vh] w-full flex justify-center items-center text-primary-300" />
       )}
@@ -93,7 +96,9 @@ function AllSampleSurveys() {
                       }}
                       key={index}
                     >
-                      <td className="px-6 py-4 font-[500] cursor-pointer text-blue-600 hover:text-gray-800">{el.name}</td>
+                      <td className="px-6 py-4 font-[500] cursor-pointer text-blue-600 hover:text-gray-800">
+                        {el.name}
+                      </td>
                       <td className="px-6 py-4 font-[500]">
                         {el.response_count || 0}
                       </td>
@@ -103,29 +108,28 @@ function AllSampleSurveys() {
                     </tr>
                   ))
                 : !loading && (
-                  <tr className="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
-                     <td className="px-6 py-10 font-[500]" colSpan={3}>
-                    <div className="w-full flex justify-center items-center font-semibold text-secondary-300 flex-col gap-5">
-                      <img
-                        src="/icons/no-data.png"
-                        className="object-contain h-20"
-                      />
-                      <p>No sample surveys</p>
-                      <ButtonFilled
-                        onClick={handleChooseSurvey}
-                        className="flex gap-3 items-center"
-                      >
-                        <IoIosAddCircle className="text-2xl" /> Add Sample
-                      </ButtonFilled>
-                    </div>
-                    </td>
+                    <tr className="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                      <td className="px-6 py-10 font-[500]" colSpan={3}>
+                        <div className="w-full flex justify-center items-center font-semibold text-secondary-300 flex-col gap-5">
+                          <img
+                            src="/icons/no-data.png"
+                            className="object-contain h-20"
+                          />
+                          <p>No sample surveys</p>
+                          <ButtonFilled
+                            onClick={handleChooseSurvey}
+                            className="flex gap-3 items-center"
+                          >
+                            <IoIosAddCircle className="text-2xl" /> Add Sample
+                          </ButtonFilled>
+                        </div>
+                      </td>
                     </tr>
                   )}
             </tbody>
           </table>
         </div>
       )}
-
 
       <Pagination
         page={page}
@@ -134,10 +138,11 @@ function AllSampleSurveys() {
         setPageLimit={setPageLimit}
         totalResponsePages={totalResponsePages}
       />
-      <ChooseSurveyModal
+  
+      <ImportSampleSurveyModal
         refetch={() => setRefetch(!refetch)}
-        open={chooseSurveyModal}
-        closeModal={() => setChooseSurveyModal(false)}
+        importModalOpen={chooseSurveyModal}
+        closeImportModal={() => setChooseSurveyModal(false)}
       />
     </div>
   );
