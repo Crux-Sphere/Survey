@@ -20,6 +20,9 @@ exports.saveSurvey = async (req, res) => {
       access_pin,
       ac_list,
       imported,
+      sampling,
+      min_sample_size,
+      max_sample_size,
       background_location_capture,
       thank_time_duration,
       questions,
@@ -45,6 +48,9 @@ exports.saveSurvey = async (req, res) => {
       header_text,
       access_pin,
       ac_list,
+      sampling,
+      min_sample_size,
+      max_sample_size,
       background_location_capture,
       thank_time_duration,
       imported: imported || false,
@@ -175,17 +181,21 @@ exports.getAllSurvey = async (req, res) => {
     if (filter && filter.trim()) {
       searchConditions.push({ name: { $regex: filter, $options: "i" } });
     }
-
     if (
       published !== undefined &&
       published !== "" &&
       published !== "undefined"
     ) {
-      searchConditions.push({ published: published === "true" });
+      // searchConditions.push({ published: published === "true" });
+        if(published === "Published"){
+          searchConditions.push({ published: true });
+        }else if(published === "Unpublished"){
+          searchConditions.push({ published: false });
+        }
     }
 
-    const findOptions =
-      searchConditions.length > 0 ? { $and: searchConditions } : {};
+    let findOptions = searchConditions.length > 0 ? { $and: searchConditions } : {};
+    findOptions = {...findOptions,sampling:false}
     console.log("find options are --->", findOptions);
     const total = await Survey.countDocuments(findOptions);
     const surveys = await Survey.find(findOptions)
@@ -194,7 +204,7 @@ exports.getAllSurvey = async (req, res) => {
       .sort(sortOptions)
       .collation({ locale: "en", strength: 2 });
 
-    console.log("surveys =--->", surveys);
+    // console.log("surveys =--->", surveys);
     if (surveys.length === 0) {
       return res
         .status(404)

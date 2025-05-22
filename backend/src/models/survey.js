@@ -38,6 +38,12 @@ const surveySchema = new Schema(
       type:Boolean,
       default:false
     },
+    min_sample_size:{
+      type:Number
+    },
+    max_sample_size:{
+      type:Number
+    },
     questions: {
       type: Schema.Types.Mixed,
       default: [],

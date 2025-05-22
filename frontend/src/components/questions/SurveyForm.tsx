@@ -150,6 +150,7 @@ function SurveyForm() {
     const data = e.dataTransfer.getData(
       "text/plain"
     ) as keyof typeof formMapping;
+    console.log("data is ----->", data);
     if (data !== "form_reorder") {
       const newForm = { component: formMapping[data], hide: false };
       setForms([...forms, newForm]);

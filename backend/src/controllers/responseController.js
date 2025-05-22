@@ -780,6 +780,11 @@ exports.getSurveyResponses = async (req, res) => {
         $unwind: "$surveyDetails",
       },
       {
+        $match: {
+          "surveyDetails.sampling": false
+        }
+      },
+      {
         $project: {
           _id: 0,
           survey_id: "$_id",

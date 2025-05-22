@@ -1,6 +1,6 @@
-// export const SERVER_URI = "http://localhost:6969";
+export const SERVER_URI = "http://localhost:6969";
 // export const SERVER_URI = "http://180.151.233.107:6969";
-export const SERVER_URI = "https://survey-3uf0.onrender.com";
+// export const SERVER_URI = "https://survey-3uf0.onrender.com";
 
 // users
 export const get_user = "api/user/getUser";
@@ -82,6 +82,7 @@ export const delete_sampling = "api/sampling/delete"
 // vrm team manager
 export const get_vrm_dashboard = "api/call-rating/dashboard"
 export const call_ratings = "api/call-rating/call-ratings"
+export const user_performance = "api/call-rating/userPerformance"
 
 
 // variables
@@ -93,6 +94,8 @@ export const districtPresidentId = "67713c803e1c10c39195a9cc"
 export const shaktiKendraId = "67713c9a3e1c10c39195a9ce"
 export const boothAdhyakshId = "671f99d938863c2bfc859e7f"
 export const VREId = "6793cb217ad0c3539d615831"
+export const VRMTeamManager = "6793caff7ad0c3539d61582f"
+
 export const validRoles = [
   'Supervisor',
   'Panna Pramukh',

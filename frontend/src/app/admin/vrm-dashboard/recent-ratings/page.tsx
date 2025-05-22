@@ -19,7 +19,7 @@ function Page() {
     async function fetchData() {
       setLoading(true);
       try {
-        const response: any = await getAllCallRatings({ rating: ratingFilter, date: dateFilter });
+        const response: any = await getAllCallRatings({ rating: ratingFilter, date: dateFilter,page,limit });
         setCallRatingData(response.data.data);
         setTotal(response.data.totalPages);
         setPage(response.data.currentPage);

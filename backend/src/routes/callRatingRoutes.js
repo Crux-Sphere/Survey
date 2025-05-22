@@ -7,5 +7,6 @@ router.post("/update",callRatingController.updateCallRating)
 router.get("/call-rating",callRatingController.getCallRatingById)
 router.get("/call-ratings",callRatingController.getAllCallRatings)
 router.get("/dashboard",callRatingController.getDashboardData)
+router.get("/userPerformance",callRatingController.getUserCallRatings)
 
 module.exports = router;

@@ -71,9 +71,17 @@ function Sidebar({ sidebarOpen, onSidebarToggle }: any) {
       path: "/admin/todos",
       tooltip: "todo-list",
     },
+   
+
   ];
 
   let bottomTabs = [
+    {
+     icon: <LuListTodo size={20}/>,
+     name: "VRE Performance",
+     path: "/admin/vre",
+     tooltip: "todo-list",
+   },
     {
       icon: <BiSupport size={20}/>,
       name: "Support",
@@ -129,10 +137,10 @@ function Sidebar({ sidebarOpen, onSidebarToggle }: any) {
       );
     } else if (roleName.includes("VRM Team Manager")) {
       SidebarScreens = SidebarScreens.filter(
-        (item: any) => item.name === "Support"
+        (item: any) => item.name === "Support" || item.name === "VRE Performance"
       );
       SidebarScreens.push({
-        icon: "/images/dashboard.png",
+        icon:<AiOutlineDashboard size={20} />,
         name: "VRM Dashboard",
         path: "/admin/vrm-dashboard",
         tooltip: "VRM Dashboard",

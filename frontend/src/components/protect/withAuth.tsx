@@ -55,7 +55,7 @@ const withAuth = (WrappedComponent: any) => {
         "Data Analyst": ["/admin/data","/admin/support","/admin/tasks"],
         "Data Manager": ["/admin/data","/admin/support","/admin/tasks"],
         "Support Executive" : ["/admin/support","/admin/tasks"],
-        "VRM Team Manager":["/admin/vrm-dashboard","/admin/support","/admin/tasks"]
+        "VRM Team Manager":["/admin/vrm-dashboard","/admin/support","/admin/tasks","/admin/vre","/admin/vre/performance"],
       };
     
       const allowedForRole = allowedPaths[name] || [];

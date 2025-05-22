@@ -1,4 +1,4 @@
-import { SERVER_URI , call_ratings, get_vrm_dashboard } from "@/utils/constants";
+import { SERVER_URI , call_ratings, get_vrm_dashboard, user_performance } from "@/utils/constants";
 import axios from "axios";
 
 export const getVrmDashboard = async (params?:any) => {
@@ -36,4 +36,22 @@ export const getAllCallRatings = async (params?:any) => {
       return { success: false, message: "Something Went Wrong", error };
     }
   };
+export const getUserPerformance = async (params?:any) => {
+    try {
+      const bearerToken = localStorage.getItem("token");
+      const options = {
+        method: "GET",
+        url: `${SERVER_URI}/${user_performance}`,
+        params:params,
+        headers: {
+          Authorization: `Bearer ${bearerToken}`,
+        },
+      };
+      const response = await axios.request(options);
+      return response
+    } catch (error) {
+      return { success: false, message: "Something Went Wrong", error };
+    }
+  };
+
   

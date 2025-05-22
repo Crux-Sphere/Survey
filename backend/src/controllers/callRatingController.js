@@ -1,5 +1,6 @@
 const CallRating = require("../models/callRating");
 const moment = require("moment");
+const mongoose = require("mongoose");
 const {
   getBadDailyRatingCount,
   getBadMonthlyRatingCount,
@@ -20,7 +21,7 @@ const {
 
 // Create a new CallRating
 exports.createCallRating = async (req, res) => {
-  console.log('create call rating');
+  console.log("create call rating");
   try {
     const { user_id, response_id, rating, comment } = req.body;
     const newCallRating = new CallRating({
@@ -52,12 +53,13 @@ exports.getAllCallRatings = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
+    const userId = req.query.userId;  
 
     // Filters
     const ratingFilter = req.query.rating; // "positive", "neutral", "negative"
     const dateFilter = req.query.date; // "YYYY-MM-DD"
 
-    console.log("query is -->",req.query)
+    console.log("query is -->", req.query);
     let matchStage = {}; // Default filter
 
     // Apply rating filter
@@ -69,14 +71,17 @@ exports.getAllCallRatings = async (req, res) => {
     if (dateFilter) {
       const startOfDay = new Date(dateFilter);
       startOfDay.setUTCHours(0, 0, 0, 0); // Ensure UTC midnight
-    
+
       const endOfDay = new Date(startOfDay);
       endOfDay.setUTCHours(23, 59, 59, 999); // End of UTC day
-    
+
       matchStage.createdAt = { $gte: startOfDay, $lte: endOfDay };
     }
+    if(userId){
+      matchStage.user_id = new mongoose.Types.ObjectId(String(userId));
+    }
 
-    console.log("match stage is -->",matchStage)
+    console.log("match stage is -->", matchStage);
 
     // Aggregation Pipeline
     const callRatings = await CallRating.aggregate([
@@ -114,7 +119,6 @@ exports.getAllCallRatings = async (req, res) => {
     });
   }
 };
-
 
 // Read a single CallRating by ID
 exports.getCallRatingById = async (req, res) => {
@@ -182,6 +186,83 @@ exports.deleteCallRating = async (req, res) => {
   }
 };
 
+exports.getUserCallRatings = async (req, res) => {
+  try {
+    const userId = req.query.userId;
+    const mode = req.query.mode || "daily"; // daily, weekly, or monthly
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const callRatings = await CallRating.find({ user_id: userId })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate("user_id");
+
+    const totalCallRatings = await CallRating.countDocuments({
+      user_id: userId,
+    });
+
+    // Counting positive, negative, and neutral calls
+    const positiveCalls = await CallRating.countDocuments({
+      user_id: userId,
+      rating: "positive",
+    });
+    const negativeCalls = await CallRating.countDocuments({
+      user_id: userId,
+      rating: "negative",
+    });
+    const neutralCalls = await CallRating.countDocuments({
+      user_id: userId,
+      rating: "neutral",
+    });
+
+    // Datewise stats based on mode
+    const dateGroupFormat =
+      mode === "monthly" ? "%Y-%m" : mode === "weekly" ? "%Y-%U" : "%Y-%m-%d";
+
+    const datewiseStats = await CallRating.aggregate([
+      { $match: { user_id: new mongoose.Types.ObjectId(String(userId)) } },
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: dateGroupFormat, date: "$createdAt" },
+          },
+          positive: {
+            $sum: { $cond: [{ $eq: ["$rating", "positive"] }, 1, 0] },
+          },
+          negative: {
+            $sum: { $cond: [{ $eq: ["$rating", "negative"] }, 1, 0] },
+          },
+          neutral: { $sum: { $cond: [{ $eq: ["$rating", "neutral"] }, 1, 0] } },
+          total: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        callRatings,
+        totalCallRatings,
+        positiveCalls,
+        negativeCalls,
+        neutralCalls,
+        datewiseStats,
+      },
+      currentPage: page,
+      totalPages: Math.ceil(totalCallRatings / limit),
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: "Error retrieving Call Ratings",
+      error: err.message,
+    });
+  }
+};
 
 exports.getDashboardData = async (req, res) => {
   try {
@@ -228,26 +309,3 @@ exports.getDashboardData = async (req, res) => {
     return res.status(500).json({ success: false, message: "Server Error" });
   }
 };
-
-// exports.getCallRatings = async (req, res) => {
-//   try {
-//     //adding pagination
-//     const page = parseInt(req.query.page) || 1;
-//     const limit = parseInt(req.query.limit) || 10;
-//     const skip = (page - 1) * limit;
-    
-//     const callRatings = await CallRating.find().limit(limit).skip(skip).exec();
-
-//     res.status(200).json({
-//       success: true,
-//       data: callRatings,
-//     });
-//   } catch (err) {
-//     res.status(500).json({
-//       success: true,
-//       message: "Error retrieving Call Ratings",
-//       error: err.message,
-//     });
-//   }
-// }
-

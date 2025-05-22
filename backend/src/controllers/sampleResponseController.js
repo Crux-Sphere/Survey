@@ -259,34 +259,74 @@ exports.getSampleResponses = async (req, res) => {
 exports.getSampleSurveys = async (req, res) => {
   try {
     console.log("route hitting");
-    const { name, page = 1, limit = 10 } = req.query;
-    const filters = { sampling: true };
+    const {
+      name,
+      filter = "", // Default filter to an empty string
+      page = 1,
+      limit = 10,
+      sortBy = "name",
+      sortOrder = "asc",
+      published,
+      user_id,
+    } = req.query;
 
-    // Apply name filter if provided
-    if (name) filters.name = { $regex: name, $options: "i" };
+    console.log("wuery is -- >",req.query)
 
-    console.log("filters", filters);
+    const order = sortOrder === "asc" ? 1 : -1;
+    const skip = (page - 1) * limit;
+    const sortOptions = {};
 
-    // Convert page and limit to integers and calculate skip
-    const pageNum = parseInt(page, 10);
-    const limitNum = parseInt(limit, 10);
-    const skip = (pageNum - 1) * limitNum;
+    if (sortBy === "name") {
+      sortOptions.name = order;
+    } else if (sortBy === "createdAt") {
+      sortOptions.createdAt = order;
+    }
 
-    // Query the database with filters, skip, and limit
-    const sampleSurveys = await Survey.find(filters).skip(skip).limit(limitNum);
+    const searchConditions = [{ sampling: true }];
 
-    // Get total count of documents for the filters
-    const totalSurveys = await Survey.countDocuments(filters);
+    if (filter && filter.trim()) {
+      searchConditions.push({ name: { $regex: filter, $options: "i" } });
+    }
+
+    if (name) {
+      searchConditions.push({ name: { $regex: name, $options: "i" } });
+    }
+
+    if (
+      published !== undefined &&
+      published !== "" &&
+      published !== "undefined"
+    ) {
+      // searchConditions.push({ published: published === "true" });
+        if(published === "Published"){
+          searchConditions.push({ published: true });
+        }else if(published === "Unpublished"){
+          searchConditions.push({ published: false });
+        }
+    }
+
+    const findOptions = searchConditions.length > 0 ? { $and: searchConditions } : {};
+    console.log("find options are --->", findOptions);
+  
+    const totalSurveys = await Survey.countDocuments(findOptions);
+    const sampleSurveys = await Survey.find(findOptions)
+      .skip(skip)
+      .limit(Number(limit))
+      .sort(sortOptions)
+      .collation({ locale: "en", strength: 2 });
 
     console.log(sampleSurveys);
 
-    // Return paginated data along with metadata
+    if (sampleSurveys.length === 0) {
+      return res.status(404).json({ success: false, message: "No surveys found" });
+    }
+
     return res.status(200).json({
       success: true,
       data: sampleSurveys,
       pagination: {
-        currentPage: pageNum,
-        totalPages: Math.ceil(totalSurveys / limitNum),
+        currentPage: Number(page),
+        totalPages: Math.ceil(totalSurveys / limit),
         totalSurveys,
       },
     });
