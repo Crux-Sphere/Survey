@@ -24,16 +24,6 @@ jobs:
         
     # - name: Decode and add .env file for frontend
     #   run: echo "${{ secrets.ENV_F }}" | base64 -d > frontend/.env
-    
-    - name: Build and push frontend Docker image
-      run: |
-        docker buildx build \
-          --platform linux/amd64 \
-          --file ./frontend/Dockerfile \
-          --tag cruxsphere/survey-f:latest \
-          --tag cruxsphere/survey-f:$(date +%s) \
-          ./frontend \
-          --push
 
     - name: Decode and add .env file for backend
       run: echo "${{ secrets.ENV }}" | base64 -d > backend/.env
@@ -46,4 +36,15 @@ jobs:
           --tag cruxsphere/survey-b:latest \
           --tag cruxsphere/survey-b:$(date +%s) \
           ./backend \
+          --push
+
+
+    - name: Build and push frontend Docker image
+      run: |
+        docker buildx build \
+          --platform linux/amd64 \
+          --file ./frontend/Dockerfile \
+          --tag cruxsphere/survey-f:latest \
+          --tag cruxsphere/survey-f:$(date +%s) \
+          ./frontend \
           --push
