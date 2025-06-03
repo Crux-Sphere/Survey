@@ -24,9 +24,10 @@ jobs:
             - name: Pull Docker images
               run: |
                 echo "Pulling latest Docker images..."
+                docker pull traefik:v2.10
                 docker pull cruxsphere/survey-f:latest
                 docker pull cruxsphere/survey-b:latest
-                docker pull traefik:v2.10
+                
             
             # - name: Backup current volumes (if needed)
             #   run: |
