@@ -3,6 +3,8 @@ version: '3.8'
 services:
   frontend:
     image: cruxsphere/survey-f:latest
+    ports:
+      - "3000:3000"  # Add this line to expose port 3000
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.frontend.rule=Host(`survey.bharatdemographic.com`)"
@@ -12,6 +14,7 @@ services:
     networks:
       - web
     restart: unless-stopped
+
 
   backend:
     image: cruxsphere/survey-b:latest
