@@ -47,8 +47,8 @@ jobs:
             - name: Stop and clean up existing resources
               run: |
                 echo "Stopping existing services..."
-                docker-compose -f compose.yaml down --remove-orphans || true
-                
+                docker-compose -f docker-compose.yaml down --remove-orphans || true
+
                 echo "Removing stale containers..."
                 docker rm -f $(docker ps -a -q -f name=survey_ -f status=exited) 2>/dev/null || true
                 docker rm -f traefik 2>/dev/null || true
@@ -62,8 +62,8 @@ jobs:
             - name: Deploy with Docker Compose
               run: |
                 echo "Deploying with Docker Compose..."
-                docker-compose up -d --force-recreate
-                
+                docker-compose -f docker-compose.yaml up -d --force-recreate
+
             # - name: Verify deployment
             #   run: |
             #     echo "Verifying services are running..."
