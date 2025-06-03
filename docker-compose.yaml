@@ -21,8 +21,8 @@ services:
     command: ["node", "server.js"]  # Explicitly set the command
     deploy:
       replicas: 3
-    ports:
-      - "6969:6969"  # Add this line to expose port 6969
+    expose:
+      - "6969"  # Add this line to expose port 6969
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.backend.rule=Host(`backend.bharatdemographic.com`)"
