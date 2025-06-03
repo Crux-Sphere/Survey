@@ -18,6 +18,8 @@ jobs:
               
             - name: Log deployment start
               run: echo "Starting deployment at $(date)"
+            - name: check user
+              run:  whoami
               
             - name: Pull Docker images
               run: |
