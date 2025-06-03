@@ -50,6 +50,10 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/notifications", notificationsRoutes);
 app.use("/api/sampling", samplingRoutes);
 app.use("/api/call-rating",callRatingRouter)
+app.get("/api/health", (req, res) => {
+  res.status(200).json({ message: "Server is running" });
+}
+);
 
 app.use(express.static(path.join(__dirname, "../frontend/out/")));
 app.get("*", (req, res) =>
