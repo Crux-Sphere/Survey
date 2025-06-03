@@ -1,4 +1,6 @@
 const CallRating = require("../models/callRating");
+const Role = require("../models/role");
+const User = require("../models/user");
 const moment = require("moment");
 const mongoose = require("mongoose");
 const {
@@ -53,14 +55,32 @@ exports.getAllCallRatings = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
-    const userId = req.query.userId;  
+    const userId = req.query.userId;
+    const mode = req.query.mode || "vrm";
+
+    let users = null;
+    const vrmRole = "VRM Voter Relationship Executive";
+
+    if ((mode === "vrm")) {
+      const role = await Role.findOne({ name: vrmRole });
+      const roleId = role._id;
+      users = await User.find({ role: roleId });
+    } else {
+      const roles = await Role.find({ category: "karyakarta" });
+      const roleIds = roles.map(
+        (role) => new mongoose.Types.ObjectId(role._id)
+      );
+      users = await User.find({ role: { $in: roleIds } });
+    }
+
+    const userIds = users.map((el)=>new mongoose.Types.ObjectId(el._id))
 
     // Filters
     const ratingFilter = req.query.rating; // "positive", "neutral", "negative"
     const dateFilter = req.query.date; // "YYYY-MM-DD"
 
     console.log("query is -->", req.query);
-    let matchStage = {}; // Default filter
+    let matchStage = { user_id: { $in: userIds } }; // Default filter: user_id should belong to userIds
 
     // Apply rating filter
     if (ratingFilter) {
@@ -77,7 +97,7 @@ exports.getAllCallRatings = async (req, res) => {
 
       matchStage.createdAt = { $gte: startOfDay, $lte: endOfDay };
     }
-    if(userId){
+    if (userId) {
       matchStage.user_id = new mongoose.Types.ObjectId(String(userId));
     }
 
@@ -112,6 +132,7 @@ exports.getAllCallRatings = async (req, res) => {
       totalPages,
     });
   } catch (err) {
+    console.log(err)
     res.status(500).json({
       success: false,
       message: "Error retrieving Call Ratings",

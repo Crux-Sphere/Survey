@@ -3,13 +3,22 @@ import { formatDate, truncateText } from "@/utils/common_functions";
 import { useRouter } from "next/navigation";
 import React from "react";
 
-function RecentRatings({ data }: any) {
-  const router = useRouter()
+function RecentRatings({ data, mode = "vrm" }: any) {
+  const router = useRouter();
   return (
     <div className="w-full rounded-[25px] flex flex-col gap-4 bg-white shadow-md p-5">
       <div className="flex justify-between items-center">
         <h3 className="text-[20px] font-bold">Recent Logs and Ratings</h3>
-        <button onClick={()=>router.push("/admin/vrm-dashboard/recent-ratings")} className="text-[13px] text-blue-500 font-semibold">
+        <button
+          onClick={() =>
+            router.push(
+              mode === "vrm"
+                ? "/admin/vrm-dashboard/recent-ratings"
+                : "/admin/karyakarta-dashboard/recent-ratings"
+            )
+          }
+          className="text-[13px] text-blue-500 font-semibold"
+        >
           View all
         </button>
       </div>

@@ -42,6 +42,18 @@ function Sidebar({ sidebarOpen, onSidebarToggle }: any) {
       tooltip: "Dashboard",
     },
     {
+      icon: <AiOutlineDashboard size={20} />,
+      name: "Karyakarta Dashboard",
+      path: "/admin/karyakarta-dashboard",
+      tooltip: "Karyakarta Dashboard",
+    },
+    {
+      icon: <AiOutlineDashboard size={20} />,
+      name: "Karyakarta Performance",
+      path: "/admin/karyakarta-performance",
+      tooltip: "Karyakarta performance",
+    },
+    {
       icon: <GoChecklist size={20}/>,
       name: "Surveys",
       path: "/admin/surveys",
@@ -176,7 +188,7 @@ function Sidebar({ sidebarOpen, onSidebarToggle }: any) {
     return `relative flex rounded-md ${
       sidebarOpen ? "w-full my-1" : "w-fit self-center mb-5"
     } transition-all ease-in-out duration-200 ${
-      el.path === "/admin" // Exact match for Dashboard
+      el.path === "/admin" || el.path === "/admin/karyakarta-dashboard" || el.path === "/admin/karyakarta" || el.path === "/admin/karyakarta-performance" // Exact match for Dashboard
         ? path === el.path
           ? "bg-[rgba(255,255,255,0.1)] activeTab hover:bg-[rgba(255,255,255,0.1)]"
           : "text-[#fff] hover:bg-[rgba(255,255,255,0.1)] text-[14px]"
