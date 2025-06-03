@@ -23,6 +23,8 @@ export const get_panna_pramukh_ac_list = "api/user/getUsersByAcList"
 export const get_booth_adhyaksh = "api/user/getBoothAdhyaksh"
 export const updateMultipleKaryakarta = "api/user/updateMultipleKaryakarta"
 export const import_karyakartas = "api/user/importKaryakartas"
+export const karyakarta_dashboard = "api/user/karyakarta-dashboard"
+
 
 
 // surveys

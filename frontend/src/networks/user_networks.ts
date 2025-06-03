@@ -18,6 +18,7 @@ import {
   get_supervisor_collectors,
   assign_booth,
   import_karyakartas,
+  karyakarta_dashboard,
 } from "@/utils/constants";
 import axios from "axios";
 
@@ -376,3 +377,22 @@ export const importKaryakartas = async (params: any) => {
     return { success: false, message: "Something Went Wrong", error };
   }
 };
+
+export const getKaryakartaDashboard = async (params?:any) => {
+    console.log("params from network --- >", params);
+    try {
+      const bearerToken = localStorage.getItem("token");
+      const options = {
+        method: "GET",
+        url: `${SERVER_URI}/${karyakarta_dashboard}`,
+        params:params,
+        headers: {
+          Authorization: `Bearer ${bearerToken}`,
+        },
+      };
+      const response = await axios.request(options);
+      return response.data;
+    } catch (error) {
+      return { success: false, message: "Something Went Wrong", error };
+    }
+  };

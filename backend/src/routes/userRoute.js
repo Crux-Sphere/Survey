@@ -37,11 +37,13 @@ router.get("/getAllKaryakarta", userController.getAllKaryakarta);
 router.get("/getKaryakarta", userController.getKaryakarta);
 router.get("/getPannaPramukh", userController.getPannaPramukh);
 router.get("/getBoothAdhyaksh", userController.getBoothAdhyaksh);
+router.get("/karyakarta-dashboard", userController.getKaryakartaDashboard);
 router.post(
   "/updateMultipleKaryakarta",
   userController.updateMultipleKaryakarta,
 );
 router.post("/getUsersByAcList", userController.getUsersByAcList);
+
 
 // notification settings
 router.post("/saveToken", userController.saveToken);

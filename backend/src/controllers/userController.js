@@ -12,6 +12,24 @@ const {
   storeNotification,
 } = require("../firebase");
 
+const {
+  getBadDailyRatingCount,
+  getBadMonthlyRatingCount,
+  getBadWeeklyRatingCount,
+  getGoodDailyRatingCount,
+  getGoodMonthlyRatingCount,
+  getGoodWeeklyRatingCount,
+  getGreatDailyRatingCount,
+  getGreatMonthlyRatingCount,
+  getGreatWeeklyRatingCount,
+  getRatingCount,
+  getRecentCallRatings,
+  getTotalCallRatings,
+  overallDailyRatingCount,
+  overallMonthlyRatingCount,
+  overallWeeklyRatingCount,
+} = require("../utils/helper/call-rating");
+
 exports.addUsers = async (req, res) => {
   try {
     const existingUser = await User.find({ email: req.body.email });
@@ -1071,3 +1089,49 @@ exports.getUserSamplingSurveys = async (req, res) => {
     });
   }
 };
+
+exports.getKaryakartaDashboard = async(req,res) => {
+  try {
+      // Total Call Ratings Pipeline
+      const totalCallRatingsData = await getRatingCount({isKaryakarta: true});
+      const recentCallRatingsData = await getRecentCallRatings({isKaryakarta: true});
+      const totalRatingCountData = await getTotalCallRatings({isKaryakarta: true});
+      const dailyOverallRatingData = await overallDailyRatingCount({isKaryakarta: true});
+      const weeklyOverallRatingData = await overallWeeklyRatingCount({isKaryakarta: true});
+      const monthlyOverallRatingData = await overallMonthlyRatingCount({isKaryakarta: true});
+      const dailyPositiveRatingData = await getGoodDailyRatingCount({isKaryakarta: true});
+      const weeklyPositiveRatingData = await getGoodWeeklyRatingCount({isKaryakarta: true});
+      const monthlyPositiveRatingData = await getGoodMonthlyRatingCount({isKaryakarta: true});
+      const dailyNegativeRatingData = await getBadDailyRatingCount({isKaryakarta: true});
+      const weeklyNegativeRatingData = await getBadWeeklyRatingCount({isKaryakarta: true});
+      const monthlyNegativeRatingData = await getBadMonthlyRatingCount({isKaryakarta: true});
+      const dailyNeutralRatingData = await getGreatDailyRatingCount({isKaryakarta: true});
+      const weeklyNeutralRatingData = await getGreatWeeklyRatingCount({isKaryakarta: true});
+      const monthlyNeutralRatingData = await getGreatMonthlyRatingCount({isKaryakarta: true});
+  
+      // Return the aggregated data in one response
+      return res.status(200).json({
+        success: true,
+        data: {
+          totalCallRatings: totalCallRatingsData,
+          recentCallRatings: recentCallRatingsData,
+          ratingCount: totalRatingCountData,
+          overallDailyRatingCount: dailyOverallRatingData,
+          overallWeeklyRatingCount: weeklyOverallRatingData,
+          overallMonthlyRatingCount: monthlyOverallRatingData,
+          positiveDailyRatingCount: dailyPositiveRatingData,
+          positiveWeeklyRatingCount: weeklyPositiveRatingData,
+          positiveMonthlyRatingCount: monthlyPositiveRatingData,
+          negativeDailyRatingCount: dailyNegativeRatingData,
+          negativeWeeklyRatingCount: weeklyNegativeRatingData,
+          negativeMonthlyRatingCount: monthlyNegativeRatingData,
+          neutralDailyRatingCount: dailyNeutralRatingData,
+          neutralWeeklyRatingCount: weeklyNeutralRatingData,
+          neutralMonthlyRatingCount: monthlyNeutralRatingData,
+        },
+      });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ success: false, message: "Server Error" });
+    }
+}
