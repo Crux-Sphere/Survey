@@ -19,6 +19,8 @@ services:
   backend:
     image: cruxsphere/survey-b:latest
     command: ["node", "server.js"]  # Explicitly set the command
+    ports:
+      - "6969:6969"  # Add this line to expose port 6969
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.backend.rule=Host(`backend.bharatdemographic.com`)"
