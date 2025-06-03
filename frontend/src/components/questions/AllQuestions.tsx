@@ -52,7 +52,7 @@ function AllQuestions() {
                   key={ind}
                   draggable
                   onDragStart={(e) => {
-                    e.dataTransfer.setData("text/plain", question);
+                    e.dataTransfer.setData("text/plain", question||'');
                   }}
                   className="p-2 flex gap-3 rounded-md bg-white cursor-grab"
                 >

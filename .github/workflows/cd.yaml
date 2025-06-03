@@ -1,0 +1,86 @@
+name: CD Pipeline
+
+on:
+    workflow_run:
+        workflows: ["Docker Images CI"]
+        types:
+            - completed
+    workflow_dispatch:
+
+jobs:
+    deploy:
+        runs-on: self-hosted
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v3
+              with:
+                fetch-depth: 1 # Shallow clone for speed
+              
+            - name: Log deployment start
+              run: echo "Starting deployment at $(date)"
+              
+            - name: Pull Docker images
+              run: |
+                echo "Pulling latest Docker images..."
+                docker pull cruxsphere/survey-f:latest
+                docker pull cruxsphere/survey-b:latest
+                docker pull traefik:v2.10
+            
+            # - name: Backup current volumes (if needed)
+            #   run: |
+            #     # Create backup directory with timestamp
+            #     BACKUP_DIR="backups/$(date +%Y%m%d_%H%M%S)"
+            #     mkdir -p $BACKUP_DIR
+                
+            #     # Only backup if volume exists and has data
+            #     if [ -d "./letsencrypt" ] && [ "$(ls -A ./letsencrypt 2>/dev/null)" ]; then
+            #       echo "Backing up certificate data..."
+            #       cp -r ./letsencrypt $BACKUP_DIR/ || true
+            #     fi
+                
+            #     # Keep only the last 5 backups
+            #     ls -tp backups/ | grep '/$' | tail -n +6 | xargs -I {} rm -rf backups/{} || true
+                
+            - name: Stop and clean up existing resources
+              run: |
+                echo "Stopping existing services..."
+                docker-compose -f compose.yaml down --remove-orphans || true
+                
+                echo "Removing stale containers..."
+                docker rm -f $(docker ps -a -q -f name=survey_ -f status=exited) 2>/dev/null || true
+                docker rm -f traefik 2>/dev/null || true
+                
+                echo "Pruning unused networks..."
+                docker network prune -f || true
+                
+                echo "Ensuring letsencrypt directory exists..."
+                mkdir -p letsencrypt
+                
+            - name: Deploy with Docker Compose
+              run: |
+                echo "Deploying with Docker Compose..."
+                docker-compose up -d --force-recreate
+                
+            # - name: Verify deployment
+            #   run: |
+            #     echo "Verifying services are running..."
+            #     sleep 10 # Give containers time to start
+            #     docker ps
+                
+            #     # Check if critical containers are running
+            #     CONTAINERS=(traefik survey_frontend_1 survey_backend_1)
+            #     for container in "${CONTAINERS[@]}"; do
+            #       if ! docker ps | grep -q "$container"; then
+            #         echo "WARNING: $container may not be running properly!"
+            #       else
+            #         echo "$container is running."
+            #       fi
+            #     done
+              
+            - name: Clean up
+              run: |
+                echo "Removing dangling images..."
+                docker image prune -f
+                
+            - name: Log deployment completion
+              run: echo "Deployment completed at $(date)"
