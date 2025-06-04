@@ -3,8 +3,6 @@ version: '3.8'
 services:
   frontend:
     image: cruxsphere/survey-f:latest
-    ports:
-      - "3000:3000"  # Add this line to expose port 3000
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.frontend.rule=Host(`survey.bharatdemographic.com`)"
@@ -21,8 +19,6 @@ services:
     command: ["node", "server.js"]  # Explicitly set the command
     deploy:
       replicas: 3
-    expose:
-      - "6969"  # Add this line to expose port 6969
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.backend.rule=Host(`backend.bharatdemographic.com`)"
@@ -68,7 +64,7 @@ services:
       - "traefik.http.routers.dashboard.tls.certresolver=myresolver"
       - "traefik.http.routers.dashboard.middlewares=auth,dashboard-stripprefix"
       - "traefik.http.middlewares.dashboard-stripprefix.stripprefix.prefixes=/dashboard"
-      - "traefik.http.middlewares.auth.basicauth.users=admin:$$apr1$$ruca84Hq$$mbjdMZBAG.KWn7vfN/SNK/"  # user: admin, password: changeme
+      - "traefik.http.middlewares.auth.basicauth.users=admin:$apr1$2uBNE7y7$NulkfJlgRri2R4GrcXC/A0"  # user: admin, password: changeme
     ports:
       - "80:80"  # HTTP
       - "443:443"  # HTTPS
