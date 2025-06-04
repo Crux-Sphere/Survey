@@ -64,8 +64,7 @@ services:
       - "traefik.http.routers.dashboard.tls.certresolver=myresolver"
       - "traefik.http.routers.dashboard.middlewares=auth,dashboard-stripprefix"
       - "traefik.http.middlewares.dashboard-stripprefix.stripprefix.prefixes=/dashboard"
-      - "traefik.http.middlewares.auth.basicauth.users=admin:$apr1$2uBNE7y7$NulkfJlgRri2R4GrcXC/A0"  # user: admin, password: changeme
-    ports:
+      - "traefik.http.middlewares.auth.basicauth.users=admin:$$apr1$$2uBNE7y7$$NulkfJlgRri2R4GrcXC/A0"    ports:
       - "80:80"  # HTTP
       - "443:443"  # HTTPS
       - "8080:8080"  # Traefik Dashboard

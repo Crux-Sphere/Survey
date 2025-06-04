@@ -29,20 +29,20 @@ jobs:
                 docker pull cruxsphere/survey-b:latest
                 
             
-            # - name: Backup current volumes (if needed)
-            #   run: |
-            #     # Create backup directory with timestamp
-            #     BACKUP_DIR="backups/$(date +%Y%m%d_%H%M%S)"
-            #     mkdir -p $BACKUP_DIR
+            - name: Backup current volumes (if needed)
+              run: |
+                # Create backup directory with timestamp
+                BACKUP_DIR="backups/$(date +%Y%m%d_%H%M%S)"
+                mkdir -p $BACKUP_DIR
                 
-            #     # Only backup if volume exists and has data
-            #     if [ -d "./letsencrypt" ] && [ "$(ls -A ./letsencrypt 2>/dev/null)" ]; then
-            #       echo "Backing up certificate data..."
-            #       cp -r ./letsencrypt $BACKUP_DIR/ || true
-            #     fi
+                # Only backup if volume exists and has data
+                if [ -d "./letsencrypt" ] && [ "$(ls -A ./letsencrypt 2>/dev/null)" ]; then
+                  echo "Backing up certificate data..."
+                  cp -r ./letsencrypt $BACKUP_DIR/ || true
+                fi
                 
-            #     # Keep only the last 5 backups
-            #     ls -tp backups/ | grep '/$' | tail -n +6 | xargs -I {} rm -rf backups/{} || true
+                # Keep only the last 5 backups
+                ls -tp backups/ | grep '/$' | tail -n +6 | xargs -I {} rm -rf backups/{} || true
                 
             - name: Stop and clean up existing resources
               run: |
