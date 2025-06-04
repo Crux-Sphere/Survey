@@ -331,6 +331,7 @@ exports.getAllResponses = async (req, res) => {
       searchText,
       page = 1,
       limit = 4,
+      contacted,
     } = req.query;
     // console.log("query is------>", req.query);
     console.log("finding survey")
@@ -391,6 +392,10 @@ exports.getAllResponses = async (req, res) => {
         { booth_no: { $regex: searchText, $options: "i" } },
         { house_no: { $regex: searchText, $options: "i" } },
       ];
+    }
+
+    if (contacted) {
+      matchStage.contacted = contacted === "true";
     }
 
     if (startDate && endDate) {
