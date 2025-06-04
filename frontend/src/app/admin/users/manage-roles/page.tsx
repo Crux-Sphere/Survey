@@ -64,6 +64,8 @@ const customPermissions: any = {
   "Data Manager": ["Download report"],
   "District President": ["View data", "Edit data"],
   "Shakti Kendra": ["View data", "Edit data"],
+  "VRM Team Manager":["Call voter"],
+  "VRM Voter Relationship Executive":["Call voter"]
 };
 
 function Page() {
