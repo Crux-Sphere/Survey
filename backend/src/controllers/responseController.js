@@ -18,7 +18,7 @@ function escapeRegex(string) {
 
 exports.saveResponse = async (req, res) => {
   console.log("here it works");
-  console.log(req.file.path);
+  console.log(req.files);
   try {
     const {
       survey_id,
@@ -129,7 +129,7 @@ exports.saveResponse = async (req, res) => {
       responseToSave.family_id = family_id;
     }
 
-    responseToSave.audio_recording_path = req.file.path;
+    responseToSave.audio_recording_path = req.files.audio[0].key;
     const response = new Responses(responseToSave);
     await response.save();
 
