@@ -752,6 +752,7 @@ exports.getResponsesGroupedByFamily = async (req, res) => {
 };
 
 exports.getSurveyResponses = async (req, res) => {
+
   try {
     const { search, sortOrder = "desc", page = 1, limit = 10 } = req.query; // Default values for page and limit
     console.log("route is hitting --- >");

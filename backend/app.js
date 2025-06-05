@@ -56,6 +56,7 @@ app.get("/api/health", (req, res) => {
 );
 
 app.use(express.static(path.join(__dirname, "../frontend/out/")));
+app.use('/uploads', express.static('uploads'));
 app.get("*", (req, res) =>
   res.sendFile(path.join(__dirname, "../frontend/out/index.html")),
 );
