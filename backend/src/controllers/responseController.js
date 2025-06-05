@@ -16,6 +16,8 @@ function escapeRegex(string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+
+
 exports.saveResponse = async (req, res) => {
   console.log("here it works");
   console.log(req.files);
@@ -130,6 +132,9 @@ exports.saveResponse = async (req, res) => {
     }
 
     responseToSave.audio_recording_path = req.files.audio[0].key;
+    if( req.files.images && req.files.images.length > 0) {
+    responseToSave.images = req.files.images.map((file) => file.key);
+    }
     const response = new Responses(responseToSave);
     await response.save();
 
