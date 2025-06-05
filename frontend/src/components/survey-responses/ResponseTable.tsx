@@ -11,7 +11,7 @@ import { IoLocationOutline } from "react-icons/io5";
 import { FaRegEye } from "react-icons/fa";
 import { useJsApiLoader } from "@react-google-maps/api";
 import AudioComp from "./AudioComp";
-import { SERVER_URI } from "@/utils/constants";
+import { SERVER_BUCKET, SERVER_URI } from "@/utils/constants";
 
 
 interface ResponseTableProps {
@@ -174,6 +174,9 @@ function ResponseTable({
             <th scope="col" className="px-6 py-3">
               User
             </th>
+            <th scope="col" className="px-6 py-3">
+              Audio
+            </th>
             {responses &&
               responses.length > 0 &&
               responses[0].responses.map((response: any, index: number) => (
@@ -281,7 +284,7 @@ function ResponseTable({
                 </td>
                 <td className="px-6 py-4 font-[500] whitespace-nowrap">
                   {/* <AudioComp audioUrl="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"/> */}
-                  <AudioComp audioUrl={`${SERVER_URI}/${response.audio_recording_path}`}/>
+                  <AudioComp audioUrl={`${SERVER_BUCKET}/${response.audio_recording_path}`}/>
                 </td>
 
 
