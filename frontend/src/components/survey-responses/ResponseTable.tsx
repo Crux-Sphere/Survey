@@ -10,6 +10,8 @@ import Response from "./Response";
 import { IoLocationOutline } from "react-icons/io5";
 import { FaRegEye } from "react-icons/fa";
 import { useJsApiLoader } from "@react-google-maps/api";
+import AudioComp from "./AudioComp";
+import { SERVER_URI } from "@/utils/constants";
 
 
 interface ResponseTableProps {
@@ -277,6 +279,11 @@ function ResponseTable({
                   {users.find((user) => user._id === response.user_id)?.name ||
                     "-"}
                 </td>
+                <td className="px-6 py-4 font-[500] whitespace-nowrap">
+                  {/* <AudioComp audioUrl="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"/> */}
+                  <AudioComp audioUrl={`${SERVER_URI}/${response.audio_recording_path}`}/>
+                </td>
+
 
                 {response.responses.map((res: any, colIndex: any) => (
                   <Response
