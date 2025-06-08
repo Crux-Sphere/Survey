@@ -631,7 +631,7 @@ exports.getAllResponses = async (req, res) => {
           .status(404)
           .json({ success: "false", message: "Response not found" });
       }
-      await downloadExcel(re, res);
+      await downloadExcel(re, res,req);
     } else {
       const pageNum = parseInt(page, 10);
       const limitNum = parseInt(limit, 10);

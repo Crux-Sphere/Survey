@@ -38,7 +38,7 @@ const generateOTPWithExpiry = (expiryMinutes = 10) => {
   }
 };
 
-const downloadExcel = async (data, res) => {
+const downloadExcel = async (data, res,req) => {
   console.log("data is --->", data);
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet("MyData");
@@ -52,6 +52,13 @@ const downloadExcel = async (data, res) => {
     { header: "Remark", key: "remark", width: 30 },
     { header: "Response Date", key: "response_date", width: 30 },
     { header: "User", key: "user", width: 20 },
+    { header: "House number", key: "house_no", width: 20 },
+    { header: "AC number", key: "ac_no", width: 20 },
+    { header: "Booth number", key: "booth_no", width: 20 },
+    { header: "Latitude", key: "latitude", width: 20 },
+    { header: "Longitude", key: "longitude", width: 20 },
+    { header: "Location link", key: "location_link", width: 20 },
+    { header: "Audio", key: "audio", width: 20 },
   ];
 
   // Add dynamic response columns based on the first document
@@ -76,15 +83,36 @@ const downloadExcel = async (data, res) => {
 
   // Add rows dynamically
   data.forEach((item, index) => {
+    // Get protocol and host dynamically from the request object
+    const protocol = req.protocol || (req.secure ? "https" : "http");
+    const host = req.get ? req.get("host") : (req.headers && req.headers.host);
+
     const row = {
       serial_no: index + 1,
       panna_pramukh: item.panna_pramukh_assigned
-        ? item.panna_pramukh_assigned.name
-        : "N/A",
+      ? item.panna_pramukh_assigned.name
+      : "N/A",
       status: item.contacted ? "Contacted" : "Not Contacted",
       remark: item.remark || "No Remark",
       response_date: item.updatedAt || item.createdAt || "N/A",
       user: item.user_id?.name || "Unknown",
+      house_no: item.house_no || "N/A",
+      ac_no: item.ac_no || "N/A",
+      booth_no: item.booth_no || "N/A",
+      latitude: item.location_data?.latitude || "N/A",
+      longitude: item.location_data?.longitude || "N/A",
+      location_link: item.location_data
+      ? {
+        text: "View Location",
+        hyperlink: `${protocol}://maps.google.com/maps?q=${item.location_data.latitude},${item.location_data.longitude}`,
+        }
+      : "N/A",
+      audio: item.audio_recording_path
+      ? {
+        text: "Audio File",
+        hyperlink: `${protocol}://${host}/${item.audio_recording_path}`,
+        }
+      : "N/A",
     };
 
     // Populate response answers in the corresponding columns
