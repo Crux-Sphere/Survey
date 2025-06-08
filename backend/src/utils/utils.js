@@ -110,7 +110,7 @@ const downloadExcel = async (data, res,req) => {
       audio: item.audio_recording_path
       ? {
         text: "Audio File",
-        hyperlink: `${protocol}://${host}/${item.audio_recording_path}`,
+        hyperlink: `${process.env.BUCKET_URL}/${item.audio_recording_path}`,
         }
       : "N/A",
     };
