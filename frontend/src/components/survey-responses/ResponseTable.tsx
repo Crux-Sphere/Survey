@@ -51,7 +51,7 @@ function ResponseTable({
 
   const { isLoaded } = useJsApiLoader({
     id: "google-map-script",
-    googleMapsApiKey: "AIzaSyAVRCw7DcpEsnXzMvUq5SpPwvPusPfI7DI",
+    googleMapsApiKey: "AIzaSyBpirs1ultpLYZLYyGa-837EVQIuGA6Rv0",
   });
 
   const [startIndex, setStartIndex] = useState<number | null>(null);
