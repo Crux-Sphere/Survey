@@ -158,7 +158,12 @@ function ResponseTable({
             <th scope="col" className="px-6 py-3"></th>
             <th scope="col" className="px-6 py-3"></th>
             {assignMode && <th scope="col" className="px-6 py-3"></th>}
-
+           <th scope="col" className="px-6 py-3 whitespace-nowrap">
+            AC
+            </th>
+            <th scope="col" className="px-6 py-3">
+              Booth
+            </th>
             <th scope="col" className="px-6 py-3 whitespace-nowrap">
               Panna pramukh
             </th>
@@ -212,7 +217,7 @@ function ResponseTable({
         </thead>
         <tbody className="bg-white">
           {responses &&
-            responses.map((response: any, rowIndex: number) => (
+            responses.map((response: any, rowIndex: number) => (    
               <tr
                 onClick={() => {
                   setSelectedResponse(response);
@@ -221,6 +226,7 @@ function ResponseTable({
                 className="odd:bg-white even:bg-gray-50 border-b dark:bg-gray-800 dark:border-gray-700"
                 key={rowIndex}
               >
+                 
                 {assignMode && (
                   <td
                     onClick={(e) => e.stopPropagation()}
@@ -252,6 +258,12 @@ function ResponseTable({
                 </td>
                 <td className="px-6 py-4 font-[500] cursor-pointer">
                   <FaRegEye size={18} />
+                </td>
+                <td className="px-6 py-4 font-[500] cursor-pointer">
+                  {response.ac_no || "--"}
+                </td>
+                 <td className="px-6 py-4 font-[500] cursor-pointer">
+                  {response.booth_no || "--"}
                 </td>
                 <td className="px-6 py-4 font-[500]">
                   {response.panna_pramukh_assigned

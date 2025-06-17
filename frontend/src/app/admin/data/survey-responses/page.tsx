@@ -69,6 +69,8 @@ function Page() {
     lat: 0,
     lng: 0,
   });
+  const [acFilters,setAcFilters] = useState<string[]>([]);
+  const [boothFilters,setBoothFilters] = useState<string[]>([]);
 
   //  pagination
   const [totalResponsePages, setTotalResponsePages] = useState<number>(1);
@@ -94,13 +96,15 @@ function Page() {
     getQuestions();
     getUserResponses();
     getUsers();
-  }, [reset, page, pageLimit, userId, appliedFilters]);
+  }, [reset, page, pageLimit, userId, appliedFilters,acFilters, boothFilters]);
 
   useEffect(() => {
     if (acList.length > 0) {
       handleGetPannaPramukh();
     }
   }, [userSearch, acList]);
+
+  console.log("Ac list is -- ",acList)
 
   async function getUserResponses() {
     let nStartDate, nEndDate;
@@ -118,6 +122,8 @@ function Page() {
       filters: appliedFilters,
       limit: pageLimit,
       page,
+      boothFilters,
+      acFilters
     };
     setLoading(true);
     const response = await getSurveyResponses(params);
@@ -249,6 +255,8 @@ function Page() {
   const handlePreviousPage = () => {
     setPage(page - 1);
   };
+  console.log("Ac filters are -- ", acFilters);
+  console.log("Booth filters are -- ", boothFilters);
 
   return (
     <div className="flex flex-col w-full px-8">
@@ -315,7 +323,7 @@ function Page() {
                   </ButtonFilled>
                 </div>
               </div>
-            </div>``
+            </div>
 
             <div className="flex gap-5 items-center pt-4">
               {/* Selected User */}
@@ -330,10 +338,56 @@ function Page() {
                   classNamePrefix="react-select"
                   isSearchable={true} // Enables search
                 />
+              {/* ac filter here */}
+              {/* AC MultiSelect */}
+              {acList && acList.length > 0 && (
+                <div className="mt-2">
+                  <label className="block text-xs mb-1">AC Filter</label>
+                  <Select2
+                    isMulti
+                    options={acList.map((ac: any) => ({
+                      value: ac.ac_no,
+                      label: ac.ac_no,
+                    }))}
+                    value={acFilters.map((ac) => ({ value: ac, label: ac }))}
+                    onChange={(selected) => {
+                      const values = (selected as any[]).map((item) => item.value);
+                      setAcFilters(values);
+                    }}
+                    placeholder="Select AC(s)"
+                    classNamePrefix="react-select"
+                  />
+                </div>
+              )}
+              {/* Booth MultiSelect */}
+              {acList && acList.length > 0 && (
+                <div className="mt-2">
+                  <label className="block text-xs mb-1">Booth Filter</label>
+                  <Select2
+                    isMulti
+                    options={
+                      // If you have booth list per AC, replace acList with booth list
+                      acList.flatMap((ac: any) =>
+                        (ac.booth_numbers || []).map((booth: any) => ({
+                          value: booth,
+                          label: booth,
+                        }))
+                      )
+                    }
+                    value={boothFilters.map((booth) => ({ value: booth, label: booth }))}
+                    onChange={(selected) => {
+                      const values = (selected as any[]).map((item) => item.value);
+                      setBoothFilters(values);
+                    }}
+                    placeholder="Select Booth(s)"
+                    classNamePrefix="react-select"
+                  />
+                </div>
+              )}
               </div>
 
               {/* Action Buttons */}
-              <div className="flex space-x-2">
+              <div className="flex space-x-2 self-end">
                 <FilledGreyButton
                   onClick={() => {
                     setStartDate(null);
@@ -341,6 +395,8 @@ function Page() {
                     setUserId("");
                     setAppliedFilters([]);
                     setReset(!reset);
+                    setAcFilters([]);
+                    setBoothFilters([]);
                   }}
                   className="btn-custom bg-gray-800 flex items-center justify-center !text-[13px] !rounded-md !text-white !h-[40px]"
                 >

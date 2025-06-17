@@ -337,6 +337,8 @@ exports.getAllResponses = async (req, res) => {
       page = 1,
       limit = 4,
       contacted,
+      acFilters,
+      boothFilters
     } = req.query;
     // console.log("query is------>", req.query);
     console.log("finding survey")
@@ -388,6 +390,13 @@ exports.getAllResponses = async (req, res) => {
       } else {
         matchStage.user_id = new mongoose.Types.ObjectId(String(userId));
       }
+    }
+
+    if(acFilters && acFilters.length > 0) { 
+      matchStage.ac_no = { $in: acFilters };
+    }
+    if(boothFilters && boothFilters.length > 0) {
+      matchStage.booth_no = { $in: boothFilters };
     }
 
     if (searchText) {
