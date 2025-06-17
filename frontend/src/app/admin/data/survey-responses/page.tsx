@@ -210,6 +210,8 @@ function Page() {
         userId,
         filters: appliedFilters,
         download: true,
+        acFilters,
+        boothFilters
       };
       let filename = "response.xlsx";
       const response: any = await downloadResponses(params);
