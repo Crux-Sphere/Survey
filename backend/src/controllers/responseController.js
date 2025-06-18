@@ -133,7 +133,30 @@ exports.saveResponse = async (req, res) => {
 
     responseToSave.audio_recording_path = req.files.audio[0].key;
     if( req.files.images && req.files.images.length > 0) {
-    responseToSave.images = req.files.images.map((file) => file.key);
+      responseToSave.images = req.files.images.map((file) => file.key);
+      
+      // Loop through uploaded images and update corresponding responses
+      req.files.images.forEach((imageFile) => {
+        const originalName = imageFile.originalname;
+        const imageKey = imageFile.key;
+        
+        // Find and update the response that contains this image
+        responseToSave.responses.forEach((response) => {
+          if (response.question_type === "Image" && Array.isArray(response.response)) {
+            response.response = response.response.map((imageResponse) => {
+              if (imageResponse.name === originalName) {
+                return {
+                  ...imageResponse,
+                  name: imageKey, // Replace name with key
+                  key: imageKey,  // Add key field
+                  url: imageFile.location // Add full URL
+                };
+              }
+              return imageResponse;
+            });
+          }
+        });
+      });
     }
     const response = new Responses(responseToSave);
     await response.save();
