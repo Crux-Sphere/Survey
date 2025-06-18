@@ -219,7 +219,9 @@ function ResponseTable({
           {responses &&
             responses.map((response: any, rowIndex: number) => (    
               <tr
-                onClick={() => {
+                onClick={(e:any) => {console.log("clicked on response");
+                  
+                  e.stopPropagation();
                   setSelectedResponse(response);
                   setResponseModalIsOpen(true);
                 }}
