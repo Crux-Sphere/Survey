@@ -40,7 +40,7 @@ function FormMappings(): { [key: string]: React.ComponentType<any> } {
     "Phone Number": PhoneNumberForm,
     Rating: RatingForm,
     Date: DateForm,
-    "Radio Button With Text": RadioButtonWithText,
+    "Radio Button With Other": RadioButtonWithText,
     "DropDown Grid": DropDownGridForm,
     "DropDown With Other Grid": DropDownWithOtherGridForm,
     "Single line Text Grid": SinglelineTextGridForm,
