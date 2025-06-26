@@ -38,14 +38,13 @@ const generateOTPWithExpiry = (expiryMinutes = 10) => {
   }
 };
 
-const downloadExcel = async (data, res,req) => {
-  console.log("data is --->", data);
+const downloadExcel = async (data, res, req) => {
+  const ExcelJS = require("exceljs");
   const workbook = new ExcelJS.Workbook();
-  const worksheet = workbook.addWorksheet("MyData");
+  const worksheet = workbook.addWorksheet("Survey Responses");
 
-  // Define base columns
-  let fileName = "Response";
-  const cols = [
+  let fileName = "Responses";
+  const baseHeaders = [
     { header: "S_no", key: "serial_no", width: 8 },
     { header: "Panna Pramukh", key: "panna_pramukh", width: 20 },
     { header: "Status", key: "status", width: 15 },
@@ -61,37 +60,144 @@ const downloadExcel = async (data, res,req) => {
     { header: "Audio", key: "audio", width: 20 },
   ];
 
-  // Add dynamic response columns based on the first document
+  const protocol = req.protocol || (req.secure ? "https" : "http");
+  const host = req.get ? req.get("host") : req.headers?.host;
+
   if (data.length > 0) {
-    console.log(data[0].survey_id.name);
-    fileName = data[0].survey_id.name.split(" ").join("_");
-    data[0].responses.forEach((response) => {
-      cols.push({
-        header: response.question, // Column header from the question
-        key: response.question, // Use the question as the key
-        width: 30,
-      });
-    });
+    fileName = data[0].survey_id?.name?.split(" ").join("_") || "Responses";
   }
 
-  // Assign columns to the worksheet
-  worksheet.columns = cols;
-
-  worksheet.getRow(1).eachCell((cell) => {
-    cell.font = { bold: true }; // Apply bold style to each header cell
+  // --- Build question map ---
+  const questionMap = new Map(); // question => { type, subQuestions }
+  data.forEach((item) => {
+    item.responses.forEach((resp) => {
+      if (!questionMap.has(resp.question)) {
+        if (resp.question_type === "Radio Grid") {
+          const subQs = resp.response
+            .split("\n")
+            .map((line) => line.split(":")[0]?.trim())
+            .filter(Boolean);
+          questionMap.set(resp.question, {
+            type: "Radio Grid",
+            subQuestions: [...new Set(subQs)],
+          });
+        } else {
+          questionMap.set(resp.question, {
+            type: resp.question_type,
+            subQuestions: [],
+          });
+        }
+      }
+    });
   });
 
-  // Add rows dynamically
-  data.forEach((item, index) => {
-    // Get protocol and host dynamically from the request object
-    const protocol = req.protocol || (req.secure ? "https" : "http");
-    const host = req.get ? req.get("host") : (req.headers && req.headers.host);
+  // --- Prepare Headers ---
+  const headerRow1 = baseHeaders.map((h) => h.header);
+  const headerRow2 = baseHeaders.map(() => "");
+  const dynamicKeys = [];
 
-    const row = {
+  const radioGridCols = new Map(); // key => color
+  const questionKeyToLabelMap = new Map(); // cleanKey => { main, sub }
+  const radioGridColors = [
+    "FFF9DA",
+    "DAF7FF",
+    "E6DAFF",
+    "DAFFE4",
+    "FFDADA",
+    "FFECD5",
+    "E0F7FA",
+  ];
+
+  let colorIndex = 0;
+  let qIndex = 0;
+
+  for (const [question, info] of questionMap.entries()) {
+    if (info.type === "Radio Grid") {
+      const color = radioGridColors[colorIndex % radioGridColors.length];
+      colorIndex++;
+
+      headerRow1.push(question);
+      for (let i = 1; i < info.subQuestions.length; i++) headerRow1.push("");
+
+      info.subQuestions.forEach((sub) => {
+        const cleanKey = `q${qIndex}_${sub.replace(/\s+/g, "_")}`;
+        headerRow2.push(sub);
+        dynamicKeys.push(cleanKey);
+        radioGridCols.set(cleanKey, color);
+        questionKeyToLabelMap.set(cleanKey, { main: question, sub });
+      });
+
+      qIndex++;
+    } else {
+      headerRow1.push(question);
+      headerRow2.push("");
+      dynamicKeys.push(question);
+    }
+  }
+
+  // --- Define worksheet columns ---
+  worksheet.columns = [
+    ...baseHeaders,
+    ...dynamicKeys.map((k) => ({ header: k, key: k, width: 30 })),
+  ];
+
+  // --- Add header row 2 only ---
+  worksheet.addRow(headerRow2);
+
+  worksheet.getRow(1).height = 30; // headerRow1
+  worksheet.getRow(2).height = 40; // headerRow2
+
+  // --- Merge and manually assign header row 1 text ---
+  let colIdx = baseHeaders.length + 1;
+  for (const [question, info] of questionMap.entries()) {
+    const span = info.type === "Radio Grid" ? info.subQuestions.length : 1;
+    if (span > 1) {
+      worksheet.mergeCells(1, colIdx, 1, colIdx + span - 1);
+    } else {
+      worksheet.mergeCells(1, colIdx, 2, colIdx);
+    }
+    worksheet.getCell(1, colIdx).value = question;
+    colIdx += span;
+  }
+
+  // --- Style header rows ---
+  [1, 2].forEach((rowNum) => {
+    const row = worksheet.getRow(rowNum);
+    row.eachCell((cell, colNumber) => {
+      const colKey = worksheet.columns[colNumber - 1]?.key;
+      const bgColor = radioGridCols.get(colKey);
+
+      cell.font = { bold: true };
+      cell.alignment = {
+        vertical: "middle",
+        horizontal: "center",
+        wrapText: true,
+      };
+
+      // Apply background color if needed
+      if (bgColor) {
+        cell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: bgColor },
+        };
+      }
+
+      // Always apply border
+      cell.border = {
+        top: { style: "thin" },
+        left: { style: "thin" },
+        bottom: { style: "thin" },
+        right: { style: "thin" },
+      };
+    });
+  });
+
+  // --- Add data rows ---
+  data.forEach((item, index) => {
+    const baseRow = {
       serial_no: index + 1,
-      panna_pramukh: item.panna_pramukh_assigned
-      ? item.panna_pramukh_assigned.name
-      : "N/A",
+      panna_pramukh: item.panna_pramukh_assigned?.name || "N/A",
       status: item.contacted ? "Contacted" : "Not Contacted",
       remark: item.remark || "No Remark",
       response_date: item.updatedAt || item.createdAt || "N/A",
@@ -102,35 +208,47 @@ const downloadExcel = async (data, res,req) => {
       latitude: item.location_data?.latitude || "N/A",
       longitude: item.location_data?.longitude || "N/A",
       location_link: item.location_data
-      ? {
-        text: "View Location",
-        hyperlink: `${protocol}://maps.google.com/maps?q=${item.location_data.latitude},${item.location_data.longitude}`,
-        }
-      : "N/A",
+        ? {
+            text: "View Location",
+            hyperlink: `${protocol}://maps.google.com/maps?q=${item.location_data.latitude},${item.location_data.longitude}`,
+          }
+        : "N/A",
       audio: item.audio_recording_path
-      ? {
-        text: "Audio File",
-        hyperlink: `${process.env.BUCKET_URL}/${item.audio_recording_path}`,
-        }
-      : "N/A",
+        ? {
+            text: "Audio File",
+            hyperlink: `${process.env.BUCKET_URL}/${item.audio_recording_path}`,
+          }
+        : "N/A",
     };
 
-    // Populate response answers in the corresponding columns
-    item.responses.forEach((response) => {
-      row[response.question] = response.response || "No Response";
+    const responseData = {};
+
+    item.responses.forEach((resp) => {
+      if (resp.question_type === "Radio Grid") {
+        const lines = resp.response.split("\n");
+        lines.forEach((line) => {
+          const [sub, val] = line.split(":").map((s) => s.trim());
+          if (sub) {
+            const key = [...questionKeyToLabelMap.entries()].find(
+              ([k, v]) => v.main === resp.question && v.sub === sub
+            )?.[0];
+            if (key) responseData[key] = val || "No Response";
+          }
+        });
+      } else {
+        responseData[resp.question] = resp.response || "No Response";
+      }
     });
 
-    worksheet.addRow(row);
+    worksheet.addRow({ ...baseRow, ...responseData });
   });
 
-  // Set response headers for file download
+  // --- Finalize and download ---
   res.setHeader(
     "Content-Type",
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
   );
   res.setHeader("Content-Disposition", `attachment; filename=${fileName}.xlsx`);
-
-  // Stream the workbook to the response
   await workbook.xlsx.write(res);
   res.end();
 };
