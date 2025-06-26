@@ -22,10 +22,13 @@ import {
   getUser,
   updateMultipleUsers,
 } from "@/networks/user_networks";
+import { GrDuplicate } from "react-icons/gr";
+
 import { qualityCheckId, surveyCollectorId } from "@/utils/constants";
 import useUser from "@/hooks/useUser";
 import PropagateLoader from "react-spinners/PropagateLoader";
 import AssignQcBoothModal from "../survey-manager/AssignQcBoothModal";
+import DuplicateSurveyModal from "./DuplicateSurveyModal";
 
 interface AllSurveysProps {
   queryParams: Params;
@@ -48,6 +51,8 @@ function AllSurveys({ queryParams, setQueryParams, updated }: AllSurveysProps) {
   const [activeDropdown, setActiveDropdown] = useState<number | null>(null);
   const [deleteModal, setDeleteModal] = useState<boolean>(false);
   const [surveyToDelete, setSurveyToDelete] = useState<string | null>(null);
+  const [surveyToDuplicate, setSurveyToDuplicate] = useState<string | null>(null);
+  const [duplicateModal,setDuplicateModal] = useState<boolean>(false)
 
   const [surveyToPublish, setSurveyToPublish] = useState<string | null>(null);
   const [isSurveyPublished, setisSurveyPublished] = useState<boolean | null>(
@@ -357,6 +362,17 @@ function AllSurveys({ queryParams, setQueryParams, updated }: AllSurveysProps) {
                                       <FaRegEdit /> Edit
                                     </button>
                                     <button
+                                      onClick={() => {
+                                        setSurveyToDuplicate(el);
+                                        setActiveDropdown(null);
+                                        setDuplicateModal(true);
+                                      }}
+                                      className="flex gap-2 items-center px-4 py-2 hover:bg-gray-100 cursor-pointer w-full text-[13px]"
+                                    >
+                                      <GrDuplicate />
+                                      Duplicate
+                                    </button>
+                                    <button
                                       disabled={el.published === false}
                                       onClick={() => {
                                         setSurveyToAssign(el._id);
@@ -531,6 +547,7 @@ function AllSurveys({ queryParams, setQueryParams, updated }: AllSurveysProps) {
             </ButtonFilled>
           </div>
         </CustomModal>
+        <DuplicateSurveyModal closeModal={()=>setDuplicateModal(false)} modalIsOpen={duplicateModal} survey={surveyToDuplicate} />
       </div>
       {/* Pagination Controls */}
       {!loading && (

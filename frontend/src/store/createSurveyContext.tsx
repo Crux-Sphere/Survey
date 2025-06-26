@@ -15,6 +15,7 @@ interface CreateSurveyContextType {
   addAcEntry: (ac_no: string, booth_numbers: string) => void;
   removeAcEntry: (index: number) => void;
   setAcList:(ac_list: ACEntry[]) => void;
+  resetContext: () => void;
 }
 
 const CreateSurveyContext = createContext<CreateSurveyContextType | undefined>(
@@ -36,10 +37,14 @@ export function CreateSurveyContextProvider({
   const removeAcEntry = (index: number) => {
     setAcList((prev) => prev.filter((_, i) => i !== index));
   };
+  const resetContext = () => {
+    setName("");
+    setAcList([]);
+  };
 
   return (
     <CreateSurveyContext.Provider
-      value={{ name, ac_list: acList, setName, addAcEntry, removeAcEntry,setAcList }}
+      value={{ name, ac_list: acList, setName, addAcEntry, removeAcEntry,setAcList ,resetContext}}
     >
       {children}
     </CreateSurveyContext.Provider>

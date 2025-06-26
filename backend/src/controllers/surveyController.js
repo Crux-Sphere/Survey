@@ -333,11 +333,13 @@ exports.updateSurvey = async (req, res) => {
       published,
       response_count,
       sampling,
+      ac_list
     } = req.body;
     console.log("body is --->",req.body)
     let updateFields = {};
 
     if (name !== undefined && name !== null) updateFields.name = name;
+    if (ac_list !== undefined && ac_list !== null) updateFields.ac_list = ac_list;
     if (header_text !== undefined && header_text !== null)
       updateFields.header_text = header_text;
     if (access_pin !== undefined && access_pin !== null)
