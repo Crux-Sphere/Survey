@@ -103,5 +103,6 @@ router.post("/saveVoteStatus", responseController.saveVoteStatus);
 router.post("/saveContactedStatus", responseController.saveContactedStatus);
 router.post("/saveRemark", responseController.saveRemark);
 router.post("/saveQualityRemark", responseController.saveQualityRemark);
+router.post("/checkPhone", responseController.checkPhoneNo);
 
 module.exports = router;

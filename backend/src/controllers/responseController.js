@@ -1473,3 +1473,30 @@ exports.saveContactedStatus = async (req, res) => {
   }
 };
 
+exports.checkPhoneNo = async (req, res) => {
+  try {
+    const { surveyId, phone } = req.body;
+
+    const existingResponse = await Responses.find({ survey_id: surveyId, phone_no: phone });
+
+    if (existingResponse.length > 0) {
+      return res.status(409).json({
+        success: false,
+        message: "Duplicate response found",
+        data: existingResponse
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "No duplicate responses found"
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: "Error finding uniqueness of phone number"
+    });
+  }
+};
+
+
