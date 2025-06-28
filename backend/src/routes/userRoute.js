@@ -48,5 +48,6 @@ router.post("/getUsersByAcList", userController.getUsersByAcList);
 // notification settings
 router.post("/saveToken", userController.saveToken);
 router.get("/assignedSamplingSurveys", userController.getUserSamplingSurveys);
+router.get("/getUsersWorkData", userController.getUsersWorkData);
 
 module.exports = router;

@@ -1135,3 +1135,50 @@ exports.getKaryakartaDashboard = async(req,res) => {
       return res.status(500).json({ success: false, message: "Server Error" });
     }
 }
+
+exports.getUsersWorkData = async (req,res) => {
+  try{
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const usersWithCounts = await Response.aggregate([
+      {$group : {_id:"$user_id",response_count:{$sum:1}}}
+    ]);
+    
+    const users = await User.find()
+      .populate('role')
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 });
+      
+    const totalUsers = await User.countDocuments();
+    
+    const countMap ={};
+    usersWithCounts.forEach(item => {
+      countMap[item._id.toString()] = item.response_count;
+    })
+    
+    const result = users.map(user=>({
+      ...user.toObject(),
+      response_count: countMap[user._id.toString()] || 0,
+    }))
+    
+    return res.status(200).json({
+      success: true, 
+      data: result,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(totalUsers / limit),
+        totalUsers: totalUsers,
+        usersPerPage: limit,
+        hasNextPage: page < Math.ceil(totalUsers / limit),
+        hasPrevPage: page > 1
+      }
+    });
+  }
+  catch(error){
+    console.error(error);
+    return res.status(500).json({success: false, message: "Error in Fetching Users Work Data"});
+  }
+}
