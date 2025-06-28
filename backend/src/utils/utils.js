@@ -257,8 +257,92 @@ const downloadExcel = async (data, res, req) => {
   res.end();
 };
 
+const downloadDailyWorkExcel = async (data, res, req) => {
+  const ExcelJS = require("exceljs");
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet("Daily Work Report");
+
+  // Define headers
+  const headers = [
+    { header: "S.No", key: "serial_no", width: 8 },
+    { header: "User Name", key: "name", width: 25 },
+    { header: "Email", key: "email", width: 30 },
+    { header: "Response Count", key: "response_count", width: 15 },
+    { header: "Status", key: "status", width: 12 },
+    { header: "Assigned Surveys", key: "assigned_surveys", width: 18 },
+    { header: "Created Date", key: "created_date", width: 20 },
+  ];
+
+  // Set up worksheet columns
+  worksheet.columns = headers;
+
+  // Style header row
+  const headerRow = worksheet.getRow(1);
+  headerRow.eachCell((cell) => {
+    cell.font = { bold: true };
+    cell.alignment = { vertical: "middle", horizontal: "center" };
+    cell.border = {
+      top: { style: "thin" },
+      left: { style: "thin" },
+      bottom: { style: "thin" },
+      right: { style: "thin" },
+    };
+    cell.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FFE0E0E0" },
+    };
+  });
+
+  // Add data rows
+  data.forEach((user, index) => {
+    const row = {
+      serial_no: index + 1,
+      name: user.name || "N/A",
+      email: user.email || "N/A",
+      response_count: user.response_count || 0,
+      status: user.status || "N/A",
+      assigned_surveys: user.assigned_survey?.length || 0,
+      created_date: user.createdAt ? new Date(user.createdAt).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      }) : "N/A",
+    };
+
+    worksheet.addRow(row);
+  });
+
+  // Style data rows
+  for (let i = 2; i <= worksheet.rowCount; i++) {
+    const row = worksheet.getRow(i);
+    row.eachCell((cell) => {
+      cell.border = {
+        top: { style: "thin" },
+        left: { style: "thin" },
+        bottom: { style: "thin" },
+        right: { style: "thin" },
+      };
+    });
+  }
+
+  // Generate filename
+  const today = new Date().toISOString().split('T')[0];
+  const fileName = `Daily_Work_Report_${today}.xlsx`;
+
+  // Set headers and download
+  res.setHeader(
+    "Content-Type",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  );
+  res.setHeader("Content-Disposition", `attachment; filename=${fileName}`);
+  await workbook.xlsx.write(res);
+  res.end();
+};
+
 module.exports = {
   generateResetToken,
   downloadExcel,
+  downloadDailyWorkExcel,
   generateOTPWithExpiry,
 };

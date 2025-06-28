@@ -66,6 +66,12 @@ function Sidebar({ sidebarOpen, onSidebarToggle }: any) {
       tooltip: "Data",
     },
     {
+      icon: <BsDatabaseCheck size={20} />,
+      name: "Daily Work Reports",
+      path: "/admin/daily-work",
+      tooltip: "Daily Work Reports",
+    },
+    {
       icon: <TbReportAnalytics size={22}/>,
       name: "Report",
       path: "/admin/report",

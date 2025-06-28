@@ -396,3 +396,26 @@ export const getKaryakartaDashboard = async (params?:any) => {
       return { success: false, message: "Something Went Wrong", error };
     }
   };
+
+export const downloadWorkData = async (params: {
+  start_date?: string;
+  end_date?: string;
+  user_id?: string;
+}) => {
+  try {
+    const bearerToken = localStorage.getItem("token");
+    const options = {
+      method: "GET",
+      url: `${SERVER_URI}/api/user/downloadWorkData`,
+      headers: {
+        Authorization: `Bearer ${bearerToken}`,
+      },
+      params,
+      responseType: 'blob' as const,
+    };
+    const response = await axios.request(options);
+    return response;
+  } catch (error) {
+    throw error;
+  }
+};

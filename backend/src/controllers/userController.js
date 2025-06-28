@@ -1136,37 +1136,94 @@ exports.getKaryakartaDashboard = async(req,res) => {
     }
 }
 
-exports.getUsersWorkData = async (req,res) => {
-  try{
+exports.getUsersWorkData = async (req, res) => {
+  try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
+    let startDate, endDate;
+    if (req.query.start_date && req.query.end_date) {
+      startDate = new Date(req.query.start_date);
+      endDate = new Date(req.query.end_date);
+      endDate.setHours(23, 59, 59, 999);
+    } else {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      startDate = new Date(yesterday.setHours(0, 0, 0, 0));
+      endDate = new Date(yesterday.setHours(23, 59, 59, 999));
+    }
+    const surveyCollectorRole = await Role.findOne({ name: "Survey Collector" });
+    if (!surveyCollectorRole) {
+      return res.status(500).json({ success: false, message: "Survey Collector role not found" });
+    }
+    let responseFilter = {
+      createdAt: { 
+        $gte: startDate, 
+        $lte: endDate 
+      },
+      user_id: { $exists: true, $ne: null }
+    };
+    if (req.query.user_id) {
+      responseFilter.user_id = req.query.user_id;
+    }
+    const responsesInRange = await Response.find(responseFilter).populate('survey_id');
+    const responsesByUser = {};
+    responsesInRange.forEach(response => {
+      if (response.user_id) {
+        const userId = response.user_id.toString();
+        if (!responsesByUser[userId]) {
+          responsesByUser[userId] = [];
+        }
+        responsesByUser[userId].push(response);
+      }
+    });
+    const userIdsWithResponses = Object.keys(responsesByUser);
 
-    const usersWithCounts = await Response.aggregate([
-      {$group : {_id:"$user_id",response_count:{$sum:1}}}
-    ]);
-    
-    const users = await User.find()
-      .populate('role')
-      .skip(skip)
-      .limit(limit)
-      .sort({ createdAt: -1 });
-      
-    const totalUsers = await User.countDocuments();
-    
-    const countMap ={};
-    usersWithCounts.forEach(item => {
-      countMap[item._id.toString()] = item.response_count;
+    if (userIdsWithResponses.length === 0) {
+      return res.status(200).json({
+        success: true, 
+        data: [],
+        dateRange: {
+          startDate: startDate.toISOString().split('T')[0],
+          endDate: endDate.toISOString().split('T')[0]
+        },
+        pagination: {
+          currentPage: page,
+          totalPages: 0,
+          totalUsers: 0,
+          usersPerPage: limit,
+          hasNextPage: false,
+          hasPrevPage: false
+        }
+      });
+    }
+    const users = await User.find({
+      _id: { $in: userIdsWithResponses },
+      role: { $in: [surveyCollectorRole._id] }
     })
-    
-    const result = users.map(user=>({
-      ...user.toObject(),
-      response_count: countMap[user._id.toString()] || 0,
-    }))
+    .populate('role')
+    .sort({ createdAt: -1 });
+
+    const totalUsers = users.length;
+
+    const usersWithResponses = users.map(user => {
+      const userResponses = responsesByUser[user._id.toString()] || [];
+      return {
+        ...user.toObject(),
+        responses: userResponses,
+        response_count: userResponses.length
+      };
+    });
+
+    const result = usersWithResponses.slice(skip, skip + limit);
     
     return res.status(200).json({
       success: true, 
       data: result,
+      dateRange: {
+        startDate: startDate.toISOString().split('T')[0],
+        endDate: endDate.toISOString().split('T')[0]
+      },
       pagination: {
         currentPage: page,
         totalPages: Math.ceil(totalUsers / limit),
@@ -1176,9 +1233,79 @@ exports.getUsersWorkData = async (req,res) => {
         hasPrevPage: page > 1
       }
     });
-  }
-  catch(error){
+  } catch (error) {
     console.error(error);
-    return res.status(500).json({success: false, message: "Error in Fetching Users Work Data"});
+    return res.status(500).json({ success: false, message: "Error in Fetching Users Work Data" });
   }
-}
+};
+
+exports.downloadWorkData = async (req, res) => {
+  try {
+    let startDate, endDate;
+    if (req.query.start_date && req.query.end_date) {
+      startDate = new Date(req.query.start_date);
+      endDate = new Date(req.query.end_date);
+      endDate.setHours(23, 59, 59, 999);
+    } else {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      startDate = new Date(yesterday.setHours(0, 0, 0, 0));
+      endDate = new Date(yesterday.setHours(23, 59, 59, 999));
+    }
+    const surveyCollectorRole = await Role.findOne({ name: "Survey Collector" });
+    if (!surveyCollectorRole) {
+      return res.status(500).json({ success: false, message: "Survey Collector role not found" });
+    }
+    let responseFilter = {
+      createdAt: { 
+        $gte: startDate, 
+        $lte: endDate 
+      },
+      user_id: { $exists: true, $ne: null }
+    };
+    if (req.query.user_id) {
+      responseFilter.user_id = req.query.user_id;
+    }
+    const responsesInRange = await Response.find(responseFilter).populate('survey_id');
+    const responsesByUser = {};
+    responsesInRange.forEach(response => {
+      if (response.user_id) {
+        const userId = response.user_id.toString();
+        if (!responsesByUser[userId]) {
+          responsesByUser[userId] = [];
+        }
+        responsesByUser[userId].push(response);
+      }
+    });
+    const userIdsWithResponses = Object.keys(responsesByUser);
+
+    if (userIdsWithResponses.length === 0) {
+      return res.status(200).json({
+        success: true, 
+        data: [],
+        message: "No data found for the selected date range"
+      });
+    }
+    const users = await User.find({
+      _id: { $in: userIdsWithResponses },
+      role: { $in: [surveyCollectorRole._id] }
+    })
+    .populate('role')
+    .sort({ createdAt: -1 });
+    const usersWithResponses = users.map(user => {
+      const userResponses = responsesByUser[user._id.toString()] || [];
+      return {
+        ...user.toObject(),
+        responses: userResponses,
+        response_count: userResponses.length
+      };
+    });
+
+    const { downloadDailyWorkExcel } = require("../utils/utils");
+    await downloadDailyWorkExcel(usersWithResponses, res, req);
+
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ success: false, message: "Error in Downloading Work Data" });
+  }
+};
