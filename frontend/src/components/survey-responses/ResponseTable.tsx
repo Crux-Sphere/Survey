@@ -12,7 +12,11 @@ import { FaRegEye } from "react-icons/fa";
 import { useJsApiLoader } from "@react-google-maps/api";
 import AudioComp from "./AudioComp";
 import { SERVER_BUCKET, SERVER_URI } from "@/utils/constants";
-
+import { MdDeleteOutline } from "react-icons/md";
+import CustomModal from "../ui/Modal";
+import ButtonBordered from "../ui/buttons/ButtonBordered";
+import { deleteResponse } from "@/networks/response_networks";
+import Loader from "../ui/Loader";
 
 interface ResponseTableProps {
   responses: any;
@@ -30,7 +34,8 @@ interface ResponseTableProps {
   selectedPanna: string | null;
   getUserResponses: any;
   setSelectedPanna: (val: string | null) => void;
-  setCoordinates?:any
+  setCoordinates?: any;
+  setResponses: any;
 }
 function ResponseTable({
   responses,
@@ -45,7 +50,8 @@ function ResponseTable({
   selectedPanna,
   getUserResponses,
   setSelectedPanna,
-  setCoordinates
+  setCoordinates,
+  setResponses,
 }: ResponseTableProps) {
   console.log("all responses /////////////// ", responses);
 
@@ -57,11 +63,38 @@ function ResponseTable({
   const [startIndex, setStartIndex] = useState<number | null>(null);
   const [endIndex, setEndIndex] = useState<number | null>(null);
   const [selectedResponses, setSelectedResponses] = useState<string[]>([]);
-
+  const [confirmationModal, setConfirmationModal] = useState<boolean>(false);
+  const [responseToDelete, setResponseToDelete] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<boolean>(false);
   const searchParams = useSearchParams();
   const surveyId = searchParams.get("survey_id");
 
   console.log("selectedResponses are from outside --->", selectedResponses);
+
+  async function handleDelete() {
+    try {
+      setDeleting(true);
+      const res = await deleteResponse({ response_id: responseToDelete });
+      console.log("deleted - ", res);
+      if (res.success) {
+        console.log(
+          `response to deleyte == ${responseToDelete} and prv is -- ${JSON.stringify(responses[0])}`
+        );
+        setResponses((prev: any) => {
+          console.log("setting responses")
+          return prev.filter((el: any) => el._id !== responseToDelete);
+        });
+      }
+
+      console.log(res);
+    } catch (err) {
+      console.log(err);
+    } finally {
+      setDeleting(false);
+      setConfirmationModal(false);
+      setResponseToDelete(null);
+    }
+  }
 
   function handleMemberClick(responseId: string, index: number) {
     // If no start index is set, set the current index as the start index
@@ -157,9 +190,10 @@ function ResponseTable({
           <tr>
             <th scope="col" className="px-6 py-3"></th>
             <th scope="col" className="px-6 py-3"></th>
+            <th scope="col" className="px-6 py-3"></th>
             {assignMode && <th scope="col" className="px-6 py-3"></th>}
-           <th scope="col" className="px-6 py-3 whitespace-nowrap">
-            AC
+            <th scope="col" className="px-6 py-3 whitespace-nowrap">
+              AC
             </th>
             <th scope="col" className="px-6 py-3">
               Booth
@@ -217,10 +251,11 @@ function ResponseTable({
         </thead>
         <tbody className="bg-white">
           {responses &&
-            responses.map((response: any, rowIndex: number) => (    
+            responses.map((response: any, rowIndex: number) => (
               <tr
-                onClick={(e:any) => {console.log("clicked on response");
-                  
+                onClick={(e: any) => {
+                  console.log("clicked on response");
+
                   e.stopPropagation();
                   setSelectedResponse(response);
                   setResponseModalIsOpen(true);
@@ -228,7 +263,6 @@ function ResponseTable({
                 className="odd:bg-white even:bg-gray-50 border-b dark:bg-gray-800 dark:border-gray-700"
                 key={rowIndex}
               >
-                 
                 {assignMode && (
                   <td
                     onClick={(e) => e.stopPropagation()}
@@ -248,10 +282,14 @@ function ResponseTable({
                     className="w-10 p-0 cursor-pointer flex justify-center items-center rounded-full h-10"
                     onClick={(e) => {
                       e.stopPropagation();
-                      console.log("clicked on -->",response.location_data?.latitude,response.location_data?.longitude)
+                      console.log(
+                        "clicked on -->",
+                        response.location_data?.latitude,
+                        response.location_data?.longitude
+                      );
                       const lat = response.location_data?.latitude || 0;
                       const lng = response.location_data?.longitude || 0;
-                      setCoordinates({lat,lng});
+                      setCoordinates({ lat, lng });
                       setMapModalIsOpen(true);
                     }}
                   >
@@ -262,9 +300,20 @@ function ResponseTable({
                   <FaRegEye size={18} />
                 </td>
                 <td className="px-6 py-4 font-[500] cursor-pointer">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setResponseToDelete(response._id);
+                      setConfirmationModal(true);
+                    }}
+                  >
+                    <MdDeleteOutline size={18} />
+                  </button>
+                </td>
+                <td className="px-6 py-4 font-[500] cursor-pointer">
                   {response.ac_no || "--"}
                 </td>
-                 <td className="px-6 py-4 font-[500] cursor-pointer">
+                <td className="px-6 py-4 font-[500] cursor-pointer">
                   {response.booth_no || "--"}
                 </td>
                 <td className="px-6 py-4 font-[500]">
@@ -298,9 +347,10 @@ function ResponseTable({
                 </td>
                 <td className="px-6 py-4 font-[500] whitespace-nowrap">
                   {/* <AudioComp audioUrl="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"/> */}
-                  <AudioComp audioUrl={`${SERVER_BUCKET}/${response.audio_recording_path}`}/>
+                  <AudioComp
+                    audioUrl={`${SERVER_BUCKET}/${response.audio_recording_path}`}
+                  />
                 </td>
-
 
                 {response.responses.map((res: any, colIndex: any) => (
                   <Response
@@ -312,9 +362,6 @@ function ResponseTable({
               </tr>
             ))}
           {/* </InfiniteScroll> */}
-
-            
-
         </tbody>
       </table>
       {assignMode && (
@@ -338,6 +385,32 @@ function ResponseTable({
           </ButtonFilled>
         </div>
       )}
+      <CustomModal
+        closeModal={() => {
+          setResponseToDelete(null);
+          setConfirmationModal(false);
+        }}
+        open={confirmationModal}
+      >
+        <div className="relative flex flex-col gap-8 w-[40vw] p-5 h-[30vh] items-center justify-center">
+          {deleting && (
+            <Loader className="absolute h-full w-full top-0 left-0" />
+          )}
+          <h1>Do you want to delete this response?</h1>
+          <div className="flex gap-5 items-center">
+            <ButtonBordered
+              onClick={() => {
+                setResponseToDelete(null);
+                setConfirmationModal(false);
+              }}
+              className="px-4 py-2 w-[100px]"
+            >
+              No
+            </ButtonBordered>
+            <button onClick={handleDelete}>Yes</button>
+          </div>
+        </div>
+      </CustomModal>
     </div>
   );
 }

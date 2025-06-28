@@ -1499,4 +1499,20 @@ exports.checkPhoneNo = async (req, res) => {
   }
 };
 
+exports.deleteResponse = async (req, res) => {
+  try {
+    const { response_id } = req.body;
+    if (!response_id) {
+      return res.status(400).json({ success: false, message: "Response ID is required" });
+    }
+    const deleted = await Responses.findByIdAndDelete(response_id);
+    if (!deleted) {
+      return res.status(404).json({ success: false, message: "Response not found" });
+    }
+    return res.status(200).json({ success: true, message: "Response deleted successfully" });
+  } catch (error) {
+    return res.status(400).json({ success: false, message: error.message });
+  }
+};
+
 

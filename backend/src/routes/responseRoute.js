@@ -104,5 +104,6 @@ router.post("/saveContactedStatus", responseController.saveContactedStatus);
 router.post("/saveRemark", responseController.saveRemark);
 router.post("/saveQualityRemark", responseController.saveQualityRemark);
 router.post("/checkPhone", responseController.checkPhoneNo);
+router.post("/deleteResponse", responseController.deleteResponse);
 
 module.exports = router;

@@ -463,6 +463,7 @@ function Page() {
           getUserResponses={getUserResponses}
           setSelectedPanna={setSelectedPanna}
           setCoordinates={setCoordinates}
+          setResponses={setResponses}
         />
       ) : (
         !loading && (

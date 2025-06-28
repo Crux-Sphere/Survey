@@ -73,7 +73,7 @@ function SurveyForm() {
       const formMappings = FormMappings();
       const receivedForms = response.data.questions?.map((question: any) => ({
         component: formMappings[question.type],
-        hide: false,
+        hide: true,
       }));
       if (receivedForms) setForms(receivedForms);
       remove();
@@ -88,6 +88,7 @@ function SurveyForm() {
           dependency: question.dependency,
           randomize: question.randomize,
           common: question.common || false,
+          unique: question.unique || false,
         });
         Object.keys(question.parameters).forEach((parameter: string) =>
           setValue(
@@ -159,6 +160,7 @@ function SurveyForm() {
         type: data,
         randomize: true,
         common: false,
+        unique:false,
         children: [],
         dependency: [],
         parameters: {},
@@ -249,6 +251,7 @@ function SurveyForm() {
       dependency: [],
       parameters: {},
       common: false,
+      unique:false
     });
     setQuestId((prev) => prev + 1);
   }

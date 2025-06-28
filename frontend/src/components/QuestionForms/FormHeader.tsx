@@ -58,9 +58,19 @@ function FormHeader({
         )}
       </div>
       <label className="whitespace-nowrap flex gap-2 items-center cursor-pointer">
-        Common question
+        Common
         <input
           {...register(`questions.${index}.common`, {
+            required: true,
+          })}
+          type="checkbox"
+          className="cursor-pointer appearance-none w-4 h-4 border-2 border-primary-300 checked:bg-primary-100 checked:text-white rounded-full"
+        />
+      </label>
+      <label className="whitespace-nowrap flex gap-2 items-center cursor-pointer">
+        Unique
+        <input
+          {...register(`questions.${index}.unique`, {
             required: true,
           })}
           type="checkbox"
