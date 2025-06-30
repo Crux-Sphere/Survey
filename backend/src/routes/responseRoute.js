@@ -105,5 +105,5 @@ router.post("/saveRemark", responseController.saveRemark);
 router.post("/saveQualityRemark", responseController.saveQualityRemark);
 router.post("/checkPhone", responseController.checkPhoneNo);
 router.post("/deleteResponse", responseController.deleteResponse);
-
+router.get("/getCasteBasedData", responseController.getCasteBasedData);
 module.exports = router;
