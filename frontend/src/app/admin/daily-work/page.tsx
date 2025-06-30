@@ -29,6 +29,8 @@ export default function DailyWorkPage() {
     const [pagination, setPagination] = useState<any>({});
     const [page, setPage] = useState<number>(1);
     const [pageLimit, setPageLimit] = useState<number>(10);
+    const [needsApply, setNeedsApply] = useState<boolean>(false);
+    const [selectKey, setSelectKey] = useState<number>(0);
     
     const options = users?.map((user) => ({
         value: user._id,
@@ -54,7 +56,7 @@ export default function DailyWorkPage() {
                 params.end_date = formatDateForApi(endDate);
             }
             if (userId) {
-                params.user_id = userId;
+                params.userId = userId;
             }
             const response = await axios.get(url, { params });
             if (response.data.success) {
@@ -77,17 +79,23 @@ export default function DailyWorkPage() {
 
     useEffect(() => {
         fetchWorkData();
-    }, [page, pageLimit, userId, startDate, endDate]);
+    }, []);
+
+    useEffect(() => {
+        if (workData.length > 0) {
+            fetchWorkData();
+        }
+    }, [page, pageLimit]);
 
     const handleApply = () => {
         if ((startDate && !endDate) || (endDate && !startDate)) {
             toast.error("Please select a complete date range!");
             return;
         }
-        // Immediately clear data and show loading
         setWorkData([]);
         setTableLoading(true);
         setPage(1);
+        setNeedsApply(false);
         fetchWorkData();
     };
 
@@ -98,8 +106,15 @@ export default function DailyWorkPage() {
         setWorkData([]);
         setPagination({});
         setPage(1);
-        fetchWorkData(); 
+        setPageLimit(10);
+        setNeedsApply(false);
+        setSelectKey(Date.now());
     };
+    useEffect(() => {
+        if (startDate === null && endDate === null && userId === "" && needsApply === false) {
+            fetchWorkData();
+        }
+    }, [startDate, endDate, userId, needsApply]);
 
     const exportToExcel = async () => {
         try {
@@ -111,12 +126,16 @@ export default function DailyWorkPage() {
                 params.end_date = formatDateForApi(endDate);
             }
             if (userId) {
-                params.user_id = userId;
+                params.userId = userId;
             }
 
             const response = await downloadWorkData(params);
-            
-            // Extract filename from response headers
+            const contentType = response.headers["content-type"];
+            if (contentType && contentType.includes("application/json")) {
+                toast.error("No work data to export.");
+                setDownloading(false);
+                return;
+            }
             const contentDisposition = response.headers["content-disposition"];
             let filename = "Daily_Work_Report.xlsx";
             if (contentDisposition) {
@@ -125,8 +144,6 @@ export default function DailyWorkPage() {
                     filename = fileMatch.replace(/"/g, "");
                 }
             }
-
-            // Create download link
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement("a");
             link.href = url;
@@ -134,7 +151,6 @@ export default function DailyWorkPage() {
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-            
             toast.success("Excel file downloaded successfully!");
         } catch (error) {
             console.error("Error exporting to Excel:", error);
@@ -143,7 +159,6 @@ export default function DailyWorkPage() {
             setDownloading(false);
         }
     };
-
     return (
     <div className="flex flex-col w-full px-8">
         <nav className="w-full py-3 px-3 flex flex-col gap-3">
@@ -175,7 +190,6 @@ export default function DailyWorkPage() {
                 <div className="bg-light-gray  w-full rounded-md shadow-md px-4 py-6 mb-5">
                 <div className="w-full">
                     <div className="flex flex-col gap-5">
-                    {/* Date Range */}
                     <div>
                         <div className="flex gap-3 items-center mb-5">
                         <h2 className="text-[16px]">Date Range</h2>
@@ -186,8 +200,14 @@ export default function DailyWorkPage() {
                             className="w-[352px] h-10 relative"
                             startDate={startDate}
                             endDate={endDate}
-                            setStartDate={setStartDate}
-                            setEndDate={setEndDate}
+                            setStartDate={(date) => {
+                                setStartDate(date);
+                                setNeedsApply(true);
+                            }}
+                            setEndDate={(date) => {
+                                setEndDate(date);
+                                setNeedsApply(true);
+                            }}
                         />
                         </div>
                     </div>
@@ -196,10 +216,12 @@ export default function DailyWorkPage() {
                         <div className="flex items-center gap-4">
                             <div className="flex flex-col w-[352px]">
                                 <Select2
+                                    key={selectKey}
                                     value={userId ? options.find((option) => option.value === userId) : null}
-                                    onChange={(selectedOption) =>
-                                        setUserId(selectedOption?.value || "")
-                                    }
+                                    onChange={(selectedOption) => {
+                                        setUserId(selectedOption?.value || "");
+                                        setNeedsApply(true);
+                                    }}
                                     options={options}
                                     placeholder="Select user"
                                     classNamePrefix="react-select"
@@ -215,6 +237,7 @@ export default function DailyWorkPage() {
                                 </FilledGreyButton>
                                 <ButtonFilled
                                   onClick={handleApply}
+                                  disabled={!needsApply && !startDate && !endDate}
                                   className="btn-custom bg-orange-700 flex items-center justify-center !text-[13px] !rounded-md !text-white !h-[40px]"
                                 >
                                   Apply
@@ -240,90 +263,81 @@ export default function DailyWorkPage() {
                   className="w-full max-h-[80vh] overflow-auto scrollbar rounded-t-2xl border border-secondary-200"
                 >
                   <table className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
-                    <thead className="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-700 dark:text-gray-400">
-                      <tr>
-                        <th scope="col" className="px-6 py-3 whitespace-nowrap">User Name</th>
-                        <th scope="col" className="px-6 py-3 whitespace-nowrap">Email</th>
-                        <th scope="col" className="px-6 py-3 whitespace-nowrap">Response Count</th>
-                        <th scope="col" className="px-6 py-3 whitespace-nowrap">Status</th>
-                        {/* <th scope="col" className="px-6 py-3 whitespace-nowrap">Supervisor</th> */}
-                        <th scope="col" className="px-6 py-3 whitespace-nowrap">Assigned Surveys</th>
-                        <th scope="col" className="px-6 py-3 whitespace-nowrap">Created Date</th>
-                        {/* <th scope="col" className="px-6 py-3 whitespace-nowrap">Last Updated</th> */}
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {workData.map((user, index) => (
-                        <tr
-                          key={user._id}
-                          className={`border-b  ${
-                            index % 2 === 0 ? "bg-white" : "bg-white"
-                          }`}
-                        >
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <div className="flex-shrink-0 h-10 w-10">
-                                <div className="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center">
-                                  <span className="text-white font-medium text-sm">
-                                    {user.name.charAt(0).toUpperCase()}
-                                  </span>
-                                </div>
-                              </div>
-                              <div className="ml-4">
-                                <div className="text-sm font-medium text-gray-900">{user.name}</div>
-                              </div>
+                  <thead className="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-700 dark:text-gray-400">
+                  <tr>
+                    <th scope="col" className="px-6 py-3 whitespace-nowrap">User Name</th>
+                    <th scope="col" className="px-6 py-3 whitespace-nowrap">Email</th>
+                    <th scope="col" className="px-6 py-3 whitespace-nowrap">Total Responses</th>
+                    <th scope="col" className="px-6 py-3 whitespace-nowrap">Work Duration</th>
+                    <th scope="col" className="px-6 py-3 whitespace-nowrap">Start Date</th>
+                    <th scope="col" className="px-6 py-3 whitespace-nowrap">End Date</th>
+                    <th scope="col" className="px-6 py-3 whitespace-nowrap">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {workData.map((user, index) => (
+                    <tr
+                      key={user.userId}
+                      className={`border-b  ${
+                        index % 2 === 0 ? "bg-white" : "bg-white"
+                      }`}
+                    >
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 h-10 w-10">
+                            <div className="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center">
+                              <span className="text-white font-medium text-sm">
+                                {user.userName.charAt(0).toUpperCase()}
+                              </span>
                             </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.email}</td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              user.response_count > 0
-                                ? "bg-green-100 text-green-800"
-                                : user.response_count > 10
-                                ? "bg-blue-100 text-blue-800"
-                                : "bg-gray-100 text-gray-800"
-                            }`}>
-                              {user.response_count} responses
+                          </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-gray-900">{user.userName}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.userEmail}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          {user.totalResponses} responses
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {user.workDurationMinutes >= 60 
+                    ? `${Math.floor(user.workDurationMinutes / 60)}h ${user.workDurationMinutes % 60}m`
+                    : `${user.workDurationMinutes}m`
+                  }
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {user.firstWorkTime ? new Date(user.firstWorkTime).toLocaleDateString("en-US", {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          }) : 'N/A'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {user.lastWorkTime ? new Date(user.lastWorkTime).toLocaleDateString("en-US", {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          }) : 'N/A'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex flex-col gap-1">
+                            <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
+                              Approved: {user.approvedCount}
                             </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              user.status === "active"
-                                ? "bg-green-100 text-green-800"
-                                : "bg-red-100 text-red-800"
-                            }`}>
-                              {user.status}
+                            <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-800">
+                              Rejected: {user.rejectedCount}
                             </span>
-                          </td>
-                          {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {user.supervisor ? (
-                              <span className="text-blue-600 font-medium">{user.supervisor}</span>
-                            ) : (
-                              <span className="text-gray-400">--</span>
-                            )}
-                          </td> */}
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                              {user.assigned_survey?.length || 0} surveys
+                            <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                              Pending: {user.pendingCount}
                             </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {new Date(user.createdAt).toLocaleDateString("en-US", {
-                              year: "numeric",
-                              month: "short",
-                              day: "numeric",
-                            })}
-                          </td>
-                          {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {new Date(user.updatedAt).toLocaleDateString("en-US", {
-                              year: "numeric",
-                              month: "short",
-                              day: "numeric",
-                            })}
-                          </td> */}
-                        </tr>
-                      ))}
-                    </tbody>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
                   </table>
                 </div>
                 {pagination.totalPages > 1 && (
@@ -349,7 +363,6 @@ export default function DailyWorkPage() {
                         <MenuItem value={100}>100</MenuItem>
                       </Select>
                     </div>
-                    {/* Navigation Arrows */}
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => setPage(page - 1)}
@@ -379,9 +392,13 @@ export default function DailyWorkPage() {
                     <span className="ml-2 text-gray-600">Loading work data...</span>
                 </div>
             )}
-            {!tableLoading && workData.length === 0 && startDate && endDate && (
+            {!tableLoading && workData.length === 0 && (userId || (startDate && endDate)) && (
                 <div className="bg-white rounded-md shadow-md p-6 text-center">
-                    <p className="text-gray-500">No work data found for the selected date range.</p>
+                    <p className="text-gray-500">
+                        {userId && !startDate && !endDate
+                            ? "No work data found for the selected user."
+                            : "No work data found for the selected date range."}
+                    </p>
                 </div>
             )}
     </div>

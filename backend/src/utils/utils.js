@@ -262,21 +262,21 @@ const downloadDailyWorkExcel = async (data, res, req) => {
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet("Daily Work Report");
 
-  // Define headers
   const headers = [
     { header: "S.No", key: "serial_no", width: 8 },
-    { header: "User Name", key: "name", width: 25 },
-    { header: "Email", key: "email", width: 30 },
-    { header: "Response Count", key: "response_count", width: 15 },
-    { header: "Status", key: "status", width: 12 },
-    { header: "Assigned Surveys", key: "assigned_surveys", width: 18 },
-    { header: "Created Date", key: "created_date", width: 20 },
+    { header: "User Name", key: "userName", width: 25 },
+    { header: "Email", key: "userEmail", width: 30 },
+    { header: "Total Responses", key: "totalResponses", width: 15 },
+    { header: "Work Duration (h:m)", key: "workDuration", width: 18 },
+    { header: "Start Date", key: "firstWorkTime", width: 22 },
+    { header: "End Date", key: "lastWorkTime", width: 22 },
+    { header: "Approved", key: "approvedCount", width: 12 },
+    { header: "Rejected", key: "rejectedCount", width: 12 },
+    { header: "Pending", key: "pendingCount", width: 12 },
   ];
 
-  // Set up worksheet columns
   worksheet.columns = headers;
 
-  // Style header row
   const headerRow = worksheet.getRow(1);
   headerRow.eachCell((cell) => {
     cell.font = { bold: true };
@@ -294,26 +294,24 @@ const downloadDailyWorkExcel = async (data, res, req) => {
     };
   });
 
-  // Add data rows
   data.forEach((user, index) => {
+    const durationH = Math.floor((user.workDurationMinutes || 0) / 60);
+    const durationM = (user.workDurationMinutes || 0) % 60;
     const row = {
       serial_no: index + 1,
-      name: user.name || "N/A",
-      email: user.email || "N/A",
-      response_count: user.response_count || 0,
-      status: user.status || "N/A",
-      assigned_surveys: user.assigned_survey?.length || 0,
-      created_date: user.createdAt ? new Date(user.createdAt).toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      }) : "N/A",
+      userName: user.userName || "N/A",
+      userEmail: user.userEmail || "N/A",
+      totalResponses: user.totalResponses || 0,
+      workDuration: `${durationH}h ${durationM}m`,
+      firstWorkTime: user.firstWorkTime ? new Date(user.firstWorkTime).toLocaleDateString("en-IN") : "N/A",
+      lastWorkTime: user.lastWorkTime ? new Date(user.lastWorkTime).toLocaleDateString("en-IN") : "N/A",
+      approvedCount: user.approvedCount || 0,
+      rejectedCount: user.rejectedCount || 0,
+      pendingCount: user.pendingCount || 0,
     };
-
     worksheet.addRow(row);
   });
 
-  // Style data rows
   for (let i = 2; i <= worksheet.rowCount; i++) {
     const row = worksheet.getRow(i);
     row.eachCell((cell) => {
@@ -326,11 +324,9 @@ const downloadDailyWorkExcel = async (data, res, req) => {
     });
   }
 
-  // Generate filename
   const today = new Date().toISOString().split('T')[0];
   const fileName = `Daily_Work_Report_${today}.xlsx`;
 
-  // Set headers and download
   res.setHeader(
     "Content-Type",
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"

@@ -400,7 +400,7 @@ export const getKaryakartaDashboard = async (params?:any) => {
 export const downloadWorkData = async (params: {
   start_date?: string;
   end_date?: string;
-  user_id?: string;
+  userId?: string;
 }) => {
   try {
     const bearerToken = localStorage.getItem("token");

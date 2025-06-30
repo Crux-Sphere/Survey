@@ -1141,101 +1141,137 @@ exports.getUsersWorkData = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
+    
     let startDate, endDate;
+    let reportInfo = '';
     if (req.query.start_date && req.query.end_date) {
-      startDate = new Date(req.query.start_date);
-      endDate = new Date(req.query.end_date);
-      endDate.setHours(23, 59, 59, 999);
+      const startDateInput = req.query.start_date; 
+      const endDateInput = req.query.end_date;     
+      startDate = new Date(startDateInput + 'T00:00:00.000Z');
+      endDate = new Date(endDateInput + 'T23:59:59.999Z');
+      reportInfo = `Work report from ${startDateInput} to ${endDateInput}`;
     } else {
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      startDate = new Date(yesterday.setHours(0, 0, 0, 0));
-      endDate = new Date(yesterday.setHours(23, 59, 59, 999));
+      const today = new Date();
+      const yesterday = new Date(today);
+      yesterday.setDate(today.getDate() - 1);
+      const yesterdayStr = yesterday.toISOString().split('T')[0]; 
+      startDate = new Date(yesterdayStr + 'T00:00:00.000Z');
+      endDate = new Date(yesterdayStr + 'T23:59:59.999Z');
+      reportInfo = `Yesterday's work report (${yesterdayStr})`;
     }
-    const surveyCollectorRole = await Role.findOne({ name: "Survey Collector" });
-    if (!surveyCollectorRole) {
-      return res.status(500).json({ success: false, message: "Survey Collector role not found" });
-    }
+    console.log('Query Date Range (UTC):', {
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString()
+    });
     let responseFilter = {
-      createdAt: { 
-        $gte: startDate, 
-        $lte: endDate 
+      createdAt: {
+        $gte: startDate,
+        $lte: endDate
       },
       user_id: { $exists: true, $ne: null }
     };
-    if (req.query.user_id) {
-      responseFilter.user_id = req.query.user_id;
+    if (req.query.userId) {
+      responseFilter.user_id = req.query.userId;
+      reportInfo += ` for user ${req.query.userId}`;
     }
-    const responsesInRange = await Response.find(responseFilter).populate('survey_id');
-    const responsesByUser = {};
-    responsesInRange.forEach(response => {
-      if (response.user_id) {
-        const userId = response.user_id.toString();
-        if (!responsesByUser[userId]) {
-          responsesByUser[userId] = [];
-        }
-        responsesByUser[userId].push(response);
+    const responses = await Response.find(responseFilter)
+      .populate('survey_id', 'title')
+      .populate('user_id', 'name email')
+    console.log(`Found ${responses.length} responses`);
+
+    if (responses.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: `No work data found - ${reportInfo}`,
+        data: [],
+        totalResponses: 0,
+        totalUsers: 0
+      });
+    }
+    const userWorkData = {};
+    responses.forEach(response => {
+      const userId = response.user_id._id.toString();
+      if (!userWorkData[userId]) {
+        userWorkData[userId] = {
+          userId: userId,
+          userName: response.user_id.name,
+          userEmail: response.user_id.email,
+          totalResponses: 0,
+          responses: [],
+          firstWorkTime: null,
+          lastWorkTime: null
+        };
+      }
+      userWorkData[userId].totalResponses++;
+      userWorkData[userId].responses.push({
+        responseId: response._id,
+        surveyTitle: response.survey_id ? response.survey_id.title : 'No Survey',
+        respondentName: response.name,
+        phoneNumber: response.phone_no,
+        acNo: response.ac_no,
+        boothNo: response.booth_no,
+        status: response.status,
+        contacted: response.contacted,
+        hasAudio: response.audio_recording_path ? true : false,
+        createdAt: response.createdAt
+      });
+      const workTime = new Date(response.createdAt);
+      if (!userWorkData[userId].firstWorkTime || workTime < userWorkData[userId].firstWorkTime) {
+        userWorkData[userId].firstWorkTime = workTime;
+      }
+      if (!userWorkData[userId].lastWorkTime || workTime > userWorkData[userId].lastWorkTime) {
+        userWorkData[userId].lastWorkTime = workTime;
       }
     });
-    const userIdsWithResponses = Object.keys(responsesByUser);
-
-    if (userIdsWithResponses.length === 0) {
-      return res.status(200).json({
-        success: true, 
-        data: [],
+    const workReport = Object.values(userWorkData).map(user => {
+      const workDuration = user.firstWorkTime && user.lastWorkTime ? 
+        Math.round((user.lastWorkTime - user.firstWorkTime) / (1000 * 60)) : 0;
+      
+      return {
+        userId: user.userId,
+        userName: user.userName,
+        userEmail: user.userEmail,
+        totalResponses: user.totalResponses,
+        workDurationMinutes: workDuration,
+        firstWorkTime: user.firstWorkTime ? user.firstWorkTime.toISOString() : null,
+        lastWorkTime: user.lastWorkTime ? user.lastWorkTime.toISOString() : null,
+        approvedCount: user.responses.filter(r => r.status === 'Approved').length,
+        rejectedCount: user.responses.filter(r => r.status === 'Rejected').length,
+        pendingCount: user.responses.filter(r => r.status === 'Pending').length,
+        contactedCount: user.responses.filter(r => r.contacted === true).length,
+        audioCount: user.responses.filter(r => r.hasAudio === true).length
+      };
+    });
+    workReport.sort((a, b) => b.totalResponses - a.totalResponses);
+    const totalUsers = workReport.length;
+    const paginatedResult = workReport.slice(skip, skip + limit);
+    return res.status(200).json({
+      success: true,
+      message: reportInfo,
+      data: paginatedResult,
+      summary: {
+        totalUsers: totalUsers,
+        totalResponses: responses.length,
         dateRange: {
           startDate: startDate.toISOString().split('T')[0],
           endDate: endDate.toISOString().split('T')[0]
-        },
-        pagination: {
-          currentPage: page,
-          totalPages: 0,
-          totalUsers: 0,
-          usersPerPage: limit,
-          hasNextPage: false,
-          hasPrevPage: false
         }
-      });
-    }
-    const users = await User.find({
-      _id: { $in: userIdsWithResponses },
-      role: { $in: [surveyCollectorRole._id] }
-    })
-    .populate('role')
-    .sort({ createdAt: -1 });
-
-    const totalUsers = users.length;
-
-    const usersWithResponses = users.map(user => {
-      const userResponses = responsesByUser[user._id.toString()] || [];
-      return {
-        ...user.toObject(),
-        responses: userResponses,
-        response_count: userResponses.length
-      };
-    });
-
-    const result = usersWithResponses.slice(skip, skip + limit);
-    
-    return res.status(200).json({
-      success: true, 
-      data: result,
-      dateRange: {
-        startDate: startDate.toISOString().split('T')[0],
-        endDate: endDate.toISOString().split('T')[0]
       },
       pagination: {
         currentPage: page,
         totalPages: Math.ceil(totalUsers / limit),
-        totalUsers: totalUsers,
-        usersPerPage: limit,
         hasNextPage: page < Math.ceil(totalUsers / limit),
         hasPrevPage: page > 1
       }
     });
+
   } catch (error) {
-    console.error(error);
-    return res.status(500).json({ success: false, message: "Error in Fetching Users Work Data" });
+    console.error('Error in getUsersWorkData:', error);
+    return res.status(500).json({ 
+      success: false, 
+      message: "Error fetching work report",
+      error: error.message
+    });
   }
 };
 
@@ -1263,8 +1299,8 @@ exports.downloadWorkData = async (req, res) => {
       },
       user_id: { $exists: true, $ne: null }
     };
-    if (req.query.user_id) {
-      responseFilter.user_id = req.query.user_id;
+    if (req.query.userId) {
+      responseFilter.user_id = req.query.userId;
     }
     const responsesInRange = await Response.find(responseFilter).populate('survey_id');
     const responsesByUser = {};
@@ -1292,18 +1328,38 @@ exports.downloadWorkData = async (req, res) => {
     })
     .populate('role')
     .sort({ createdAt: -1 });
-    const usersWithResponses = users.map(user => {
+
+    let usersWithResponses = users.map(user => {
       const userResponses = responsesByUser[user._id.toString()] || [];
+      let firstWorkTime = null, lastWorkTime = null;
+      userResponses.forEach(r => {
+        const t = new Date(r.createdAt);
+        if (!firstWorkTime || t < firstWorkTime) firstWorkTime = t;
+        if (!lastWorkTime || t > lastWorkTime) lastWorkTime = t;
+      });
+      const workDuration = firstWorkTime && lastWorkTime ? Math.round((lastWorkTime - firstWorkTime) / (1000 * 60)) : 0;
       return {
-        ...user.toObject(),
-        responses: userResponses,
-        response_count: userResponses.length
+        userId: user._id.toString(),
+        userName: user.name || "N/A",
+        userEmail: user.email || "N/A",
+        totalResponses: userResponses.length,
+        workDurationMinutes: workDuration,
+        firstWorkTime: firstWorkTime ? firstWorkTime.toISOString() : null,
+        lastWorkTime: lastWorkTime ? lastWorkTime.toISOString() : null,
+        approvedCount: userResponses.filter(r => r.status === 'Approved').length,
+        rejectedCount: userResponses.filter(r => r.status === 'Rejected').length,
+        pendingCount: userResponses.filter(r => r.status === 'Pending').length,
+        contactedCount: userResponses.filter(r => r.contacted === true).length,
+        audioCount: userResponses.filter(r => r.audio_recording_path).length,
       };
     });
 
+    if (req.query.userId) {
+      usersWithResponses = usersWithResponses.filter(u => u.userId === req.query.userId);
+    }
+    usersWithResponses.sort((a, b) => b.totalResponses - a.totalResponses);
     const { downloadDailyWorkExcel } = require("../utils/utils");
     await downloadDailyWorkExcel(usersWithResponses, res, req);
-
   } catch (error) {
     console.error(error);
     return res.status(500).json({ success: false, message: "Error in Downloading Work Data" });
