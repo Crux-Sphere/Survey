@@ -1086,6 +1086,11 @@ exports.getSurveyResponseStats = async (req, res) => {
           responses: 1,
         },
       },
+      {
+        $sort:{
+          question_id:1
+        }
+      }
     ];
 
     console.log(JSON.stringify(aggregationPipeline, null, 2));
