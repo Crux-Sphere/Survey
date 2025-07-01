@@ -262,6 +262,17 @@ const downloadDailyWorkExcel = async (data, res, req) => {
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet("Daily Work Report");
 
+  const allQuestions = new Set();
+  data.forEach(user => {
+    (user.responses || []).forEach(respObj => {
+      const resp = respObj.response || {};
+      (resp.responses || []).forEach(ans => {
+        allQuestions.add(ans.question);
+      });
+    });
+  });
+  const questionList = Array.from(allQuestions);
+
   const headers = [
     { header: "S.No", key: "serial_no", width: 8 },
     { header: "User Name", key: "userName", width: 25 },
@@ -270,11 +281,11 @@ const downloadDailyWorkExcel = async (data, res, req) => {
     { header: "Work Duration (h:m)", key: "workDuration", width: 18 },
     { header: "Start Date", key: "firstWorkTime", width: 22 },
     { header: "End Date", key: "lastWorkTime", width: 22 },
-    { header: "Approved", key: "approvedCount", width: 12 },
-    { header: "Rejected", key: "rejectedCount", width: 12 },
-    { header: "Pending", key: "pendingCount", width: 12 },
+    { header: "AC No", key: "ac_no", width: 12 },
+    { header: "Booth No", key: "booth_no", width: 12 },
+    { header: "Created At", key: "createdAt", width: 22 },
+    ...questionList.map(q => ({ header: q, key: q, width:  Math.min(80, Math.max(30, Math.ceil(q.length / 2))) }))
   ];
-
   worksheet.columns = headers;
 
   const headerRow = worksheet.getRow(1);
@@ -294,22 +305,31 @@ const downloadDailyWorkExcel = async (data, res, req) => {
     };
   });
 
-  data.forEach((user, index) => {
+  let serial = 1;
+  data.forEach(user => {
     const durationH = Math.floor((user.workDurationMinutes || 0) / 60);
     const durationM = (user.workDurationMinutes || 0) % 60;
-    const row = {
-      serial_no: index + 1,
-      userName: user.userName || "N/A",
-      userEmail: user.userEmail || "N/A",
-      totalResponses: user.totalResponses || 0,
-      workDuration: `${durationH}h ${durationM}m`,
-      firstWorkTime: user.firstWorkTime ? new Date(user.firstWorkTime).toLocaleDateString("en-IN") : "N/A",
-      lastWorkTime: user.lastWorkTime ? new Date(user.lastWorkTime).toLocaleDateString("en-IN") : "N/A",
-      approvedCount: user.approvedCount || 0,
-      rejectedCount: user.rejectedCount || 0,
-      pendingCount: user.pendingCount || 0,
-    };
-    worksheet.addRow(row);
+    // console.log('Excel Export:', user.userName, 'totalResponses:', user.totalResponses, 'responses.length:', (user.responses || []).length);
+    (user.responses || []).forEach((respObj, idx) => {
+      const resp = respObj.response || {};
+      console.log('  Response', idx + 1, resp._id || resp.createdAt);
+      const row = {
+        serial_no: serial++,
+        userName: user.userName || "N/A",
+        userEmail: user.userEmail || "N/A",
+        totalResponses: user.totalResponses || 0,
+        workDuration: `${durationH}h ${durationM}m`,
+        firstWorkTime: user.firstWorkTime ? new Date(user.firstWorkTime).toLocaleDateString("en-IN") : "N/A",
+        lastWorkTime: user.lastWorkTime ? new Date(user.lastWorkTime).toLocaleDateString("en-IN") : "N/A",
+        ac_no: resp.ac_no || "",
+        booth_no: resp.booth_no || "",
+        createdAt: resp.createdAt ? new Date(resp.createdAt).toLocaleString("en-IN") : "",
+      };
+      (resp.responses || []).forEach(ans => {
+        row[ans.question] = ans.response || "";
+      });
+      worksheet.addRow(row);
+    });
   });
 
   for (let i = 2; i <= worksheet.rowCount; i++) {

@@ -1203,18 +1203,7 @@ exports.getUsersWorkData = async (req, res) => {
         };
       }
       userWorkData[userId].totalResponses++;
-      userWorkData[userId].responses.push({
-        responseId: response._id,
-        surveyTitle: response.survey_id ? response.survey_id.title : 'No Survey',
-        respondentName: response.name,
-        phoneNumber: response.phone_no,
-        acNo: response.ac_no,
-        boothNo: response.booth_no,
-        status: response.status,
-        contacted: response.contacted,
-        hasAudio: response.audio_recording_path ? true : false,
-        createdAt: response.createdAt
-      });
+      userWorkData[userId].responses.push({response});
       const workTime = new Date(response.createdAt);
       if (!userWorkData[userId].firstWorkTime || workTime < userWorkData[userId].firstWorkTime) {
         userWorkData[userId].firstWorkTime = workTime;
@@ -1239,7 +1228,8 @@ exports.getUsersWorkData = async (req, res) => {
         rejectedCount: user.responses.filter(r => r.status === 'Rejected').length,
         pendingCount: user.responses.filter(r => r.status === 'Pending').length,
         contactedCount: user.responses.filter(r => r.contacted === true).length,
-        audioCount: user.responses.filter(r => r.hasAudio === true).length
+        audioCount: user.responses.filter(r => r.hasAudio === true).length,
+        responses: user.responses
       };
     });
     workReport.sort((a, b) => b.totalResponses - a.totalResponses);
@@ -1302,11 +1292,11 @@ exports.downloadWorkData = async (req, res) => {
     if (req.query.userId) {
       responseFilter.user_id = req.query.userId;
     }
-    const responsesInRange = await Response.find(responseFilter).populate('survey_id');
+    const responsesInRange = await Response.find(responseFilter).populate('survey_id').populate('user_id', 'name email');
     const responsesByUser = {};
     responsesInRange.forEach(response => {
       if (response.user_id) {
-        const userId = response.user_id.toString();
+        const userId = response.user_id._id ? response.user_id._id.toString() : response.user_id.toString();
         if (!responsesByUser[userId]) {
           responsesByUser[userId] = [];
         }
@@ -1346,11 +1336,7 @@ exports.downloadWorkData = async (req, res) => {
         workDurationMinutes: workDuration,
         firstWorkTime: firstWorkTime ? firstWorkTime.toISOString() : null,
         lastWorkTime: lastWorkTime ? lastWorkTime.toISOString() : null,
-        approvedCount: userResponses.filter(r => r.status === 'Approved').length,
-        rejectedCount: userResponses.filter(r => r.status === 'Rejected').length,
-        pendingCount: userResponses.filter(r => r.status === 'Pending').length,
-        contactedCount: userResponses.filter(r => r.contacted === true).length,
-        audioCount: userResponses.filter(r => r.audio_recording_path).length,
+        responses: userResponses.map(r => ({ response: r })),
       };
     });
 

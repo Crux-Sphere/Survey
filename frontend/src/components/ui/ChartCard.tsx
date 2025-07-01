@@ -30,19 +30,21 @@ function ChartCard({
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
           data={data}
-          margin={{ top: 0, right: 0, left: -10, bottom: 40 }}
+          margin={{ top: 0, right: 0, left: -10, bottom: 60 }}
         >
           <CartesianGrid vertical={false} />
           <XAxis
-            height={70}  
+            height={70}
             dataKey={xName}
             axisLine={false}
-            tick={{ fontSize: 12, textAnchor: "end", dy: 10 }}
-            angle={-90}
+            tick={{ fontSize: 12, textAnchor: "middle", dy: 10 }}
+            angle={0}
+            interval={0}
+            tickFormatter={value => value && value.length > 16 ? value.slice(0, 16) + '...' : value}
           />
           <YAxis axisLine={false} tick={{ fontSize: 12 }} />
           <Tooltip cursor={false} />
-          <Bar dataKey={yName} fill="#FF8437" barSize={30} />
+          <Bar dataKey={yName} fill="#FF8437" barSize={30} name={yName} />
         </BarChart>
       </ResponsiveContainer>
     </div>
