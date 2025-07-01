@@ -78,6 +78,12 @@ function Sidebar({ sidebarOpen, onSidebarToggle }: any) {
       tooltip: "Report",
     },
     {
+      icon: <TbReportAnalytics size={22}/>,
+      name: "Report 2",
+      path: "/admin/report2",
+      tooltip: "Report 2",
+    },
+    {
       icon: <FaRegListAlt size={16}/>,
       name: "Survey Sampling",
       path: "/admin/survey-sampling",

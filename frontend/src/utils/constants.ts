@@ -91,6 +91,10 @@ export const user_performance = "api/call-rating/userPerformance"
 
 // daily work report 
 export const dailyWorkReport = `${SERVER_URI}/api/user/getUsersWorkData`
+
+// report 2
+export const get_report_2 = "api/response/getCasteBasedData"
+
 // variables
 export const supervisorId = "675985aaa6b36c1fa78d5517"
 export const surveyCollectorId = "671f997d38863c2bfc859e76"
