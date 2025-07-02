@@ -60,9 +60,7 @@ function FormHeader({
       <label className="whitespace-nowrap flex gap-2 items-center cursor-pointer">
         Common
         <input
-          {...register(`questions.${index}.common`, {
-            required: true,
-          })}
+          {...register(`questions.${index}.common`)}
           type="checkbox"
           className="cursor-pointer appearance-none w-4 h-4 border-2 border-primary-300 checked:bg-primary-100 checked:text-white rounded-full"
         />
@@ -70,9 +68,7 @@ function FormHeader({
       <label className="whitespace-nowrap flex gap-2 items-center cursor-pointer">
         Unique
         <input
-          {...register(`questions.${index}.unique`, {
-            required: true,
-          })}
+          {...register(`questions.${index}.unique`)}
           type="checkbox"
           className="cursor-pointer appearance-none w-4 h-4 border-2 border-primary-300 checked:bg-primary-100 checked:text-white rounded-full"
         />
