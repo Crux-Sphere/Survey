@@ -30,6 +30,15 @@ const responseSchema = new Schema(
     phone_no: {
       type: String,
     },
+    start:{
+      type:Date
+    },
+    end:{
+      type:Date
+    },
+    caste:{
+      type:String
+    },  
     responses: {
       type: Schema.Types.Mixed,
     },

@@ -33,6 +33,9 @@ exports.saveResponse = async (req, res) => {
       booth_no,
       house_no,
       // last_name,
+      start,
+      end,
+      caste,
       phone_no,
       family_id,
       save_mode,
@@ -64,6 +67,9 @@ exports.saveResponse = async (req, res) => {
     let responseToSave = {
       survey_id,
       user_id,
+      start,
+      end,
+      caste,
       responses: parsedResponses,
       location_data: parsedLocationData,
       ac_no,
@@ -1132,6 +1138,7 @@ exports.updateResponse = async (req, res) => {
       location_data,
       name,
       ac_no,
+      caste,
       booth_no,
       house_no,
       status,
@@ -1150,6 +1157,7 @@ exports.updateResponse = async (req, res) => {
     if (ac_no) updateFields.ac_no = ac_no;
     if (booth_no) updateFields.booth_no = booth_no;
     if (house_no) updateFields.house_no = house_no;
+    if (caste) updateFields.caste = caste;
     // if (last_name) updateFields.last_name = last_name;
     if (status) {
       updateFields.status = status;
@@ -1218,7 +1226,6 @@ exports.updateResponse = async (req, res) => {
           ac_no,
           booth_no,
           house_no,
-          // last_name,
           common_responses: commonResponses,
         });
         createdNewFamily = true;
