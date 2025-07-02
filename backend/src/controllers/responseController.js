@@ -1521,3 +1521,76 @@ exports.deleteResponse = async (req, res) => {
 };
 
 
+exports.getCasteBasedData = async (req, res) => {
+  try {
+    const { surveyId, caste, startDate, endDate } = req.query;
+
+    const matchStage = {
+      survey_id: new mongoose.Types.ObjectId(String(surveyId)),
+      caste: caste,
+    };
+    if (startDate && endDate) {
+      const startUtcDate = new Date(startDate);
+      startUtcDate.setUTCHours(0, 0, 0, 0);
+      const endUtcDate = new Date(endDate);
+      endUtcDate.setUTCHours(23, 59, 59, 999);
+      matchStage.createdAt = { $gte: startUtcDate, $lte: endUtcDate };
+    }
+
+    const pipeline = [
+      { $match: matchStage },
+      { $unwind: "$responses" },
+      {
+        $match: {
+          $or: [
+            { "responses.question_type": "Checkbox List" },
+            { "responses.question_type": "Radio Button" },
+          ],
+        },
+      },
+      {
+        $group: {
+          _id: {
+            question_id: "$responses.question_id",
+            question: "$responses.question",
+            question_type: "$responses.question_type",
+            response_value: "$responses.response",
+          },
+          count: { $sum: 1 },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            question_id: "$_id.question_id",
+            question: "$_id.question",
+            question_type: "$_id.question_type",
+          },
+          responses: {
+            $push: {
+              response_value: "$_id.response_value",
+              count: "$count",
+            },
+          },
+          total_responses: { $sum: "$count" },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          question_id: "$_id.question_id",
+          question: "$_id.question",
+          question_type: "$_id.question_type",
+          total_responses: 1,
+          responses: 1,
+        },
+      },
+    ];
+
+    const result = await Responses.aggregate(pipeline).allowDiskUse(true);
+    return res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}

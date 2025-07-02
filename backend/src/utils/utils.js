@@ -257,8 +257,108 @@ const downloadExcel = async (data, res, req) => {
   res.end();
 };
 
+const downloadDailyWorkExcel = async (data, res, req) => {
+  const ExcelJS = require("exceljs");
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet("Daily Work Report");
+
+  const allQuestions = new Set();
+  data.forEach(user => {
+    (user.responses || []).forEach(respObj => {
+      const resp = respObj.response || {};
+      (resp.responses || []).forEach(ans => {
+        allQuestions.add(ans.question);
+      });
+    });
+  });
+  const questionList = Array.from(allQuestions);
+
+  const headers = [
+    { header: "S.No", key: "serial_no", width: 8 },
+    { header: "User Name", key: "userName", width: 25 },
+    { header: "Email", key: "userEmail", width: 30 },
+    { header: "Total Responses", key: "totalResponses", width: 15 },
+    { header: "Work Duration (h:m)", key: "workDuration", width: 18 },
+    { header: "Start Date", key: "firstWorkTime", width: 22 },
+    { header: "End Date", key: "lastWorkTime", width: 22 },
+    { header: "AC No", key: "ac_no", width: 12 },
+    { header: "Booth No", key: "booth_no", width: 12 },
+    { header: "Created At", key: "createdAt", width: 22 },
+    ...questionList.map(q => ({ header: q, key: q, width:  Math.min(80, Math.max(30, Math.ceil(q.length / 2))) }))
+  ];
+  worksheet.columns = headers;
+
+  const headerRow = worksheet.getRow(1);
+  headerRow.eachCell((cell) => {
+    cell.font = { bold: true };
+    cell.alignment = { vertical: "middle", horizontal: "center" };
+    cell.border = {
+      top: { style: "thin" },
+      left: { style: "thin" },
+      bottom: { style: "thin" },
+      right: { style: "thin" },
+    };
+    cell.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FFE0E0E0" },
+    };
+  });
+
+  let serial = 1;
+  data.forEach(user => {
+    const durationH = Math.floor((user.workDurationMinutes || 0) / 60);
+    const durationM = (user.workDurationMinutes || 0) % 60;
+    // console.log('Excel Export:', user.userName, 'totalResponses:', user.totalResponses, 'responses.length:', (user.responses || []).length);
+    (user.responses || []).forEach((respObj, idx) => {
+      const resp = respObj.response || {};
+      console.log('  Response', idx + 1, resp._id || resp.createdAt);
+      const row = {
+        serial_no: serial++,
+        userName: user.userName || "N/A",
+        userEmail: user.userEmail || "N/A",
+        totalResponses: user.totalResponses || 0,
+        workDuration: `${durationH}h ${durationM}m`,
+        firstWorkTime: user.firstWorkTime ? new Date(user.firstWorkTime).toLocaleDateString("en-IN") : "N/A",
+        lastWorkTime: user.lastWorkTime ? new Date(user.lastWorkTime).toLocaleDateString("en-IN") : "N/A",
+        ac_no: resp.ac_no || "",
+        booth_no: resp.booth_no || "",
+        createdAt: resp.createdAt ? new Date(resp.createdAt).toLocaleString("en-IN") : "",
+      };
+      (resp.responses || []).forEach(ans => {
+        row[ans.question] = ans.response || "";
+      });
+      worksheet.addRow(row);
+    });
+  });
+
+  for (let i = 2; i <= worksheet.rowCount; i++) {
+    const row = worksheet.getRow(i);
+    row.eachCell((cell) => {
+      cell.border = {
+        top: { style: "thin" },
+        left: { style: "thin" },
+        bottom: { style: "thin" },
+        right: { style: "thin" },
+      };
+    });
+  }
+
+  const today = new Date().toISOString().split('T')[0];
+  const fileName = `Daily_Work_Report_${today}.xlsx`;
+
+  res.setHeader(
+    "Content-Type",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  );
+  res.setHeader("Content-Disposition", `attachment; filename=${fileName}`);
+  await workbook.xlsx.write(res);
+  res.end();
+};
+
 module.exports = {
   generateResetToken,
   downloadExcel,
+  downloadDailyWorkExcel,
   generateOTPWithExpiry,
 };

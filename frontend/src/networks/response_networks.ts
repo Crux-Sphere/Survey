@@ -1,4 +1,4 @@
-import { delete_response, get_all_survey_responses, get_survey_responses, get_survey_responses_by_family, save_quality_remark, save_responses, SERVER_URI, update_response } from "@/utils/constants";
+import { delete_response, get_all_survey_responses, get_survey_responses, get_survey_responses_by_family, save_quality_remark, save_responses, SERVER_URI, update_response, get_report_2 } from "@/utils/constants";
 import axios, { AxiosRequestConfig } from "axios";
 
 
@@ -107,6 +107,26 @@ export const deleteResponse = async(params:any) =>{
       method: "POST",
       url: `${SERVER_URI}/${delete_response}`,
       data:params
+    };
+    const response = await axios.request(options);
+    return response.data;
+  } catch (error) {
+    return { success: false, message: "Something Went Wrong", error };
+  }
+}
+export const getReport2 = async(params:any) =>{
+  try {
+    const { surveyId, caste, startDate, endDate } = params;
+    
+    const options :AxiosRequestConfig = {
+      method: "GET",
+      url: `${SERVER_URI}/api/response/getCasteBasedData`,
+      params: {
+        surveyId,
+        caste,
+        startDate,
+        endDate
+      }
     };
     const response = await axios.request(options);
     return response.data;

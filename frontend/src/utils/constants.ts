@@ -1,7 +1,7 @@
-// export const SERVER_URI = "http://localhost:6969";
+export const SERVER_URI = "http://localhost:6969";
 // export const SERVER_URI = "http://180.151.233.107:6969";
 // export const SERVER_URI = "https://survey-3uf0.onrender.com";
-export const SERVER_URI = "https://backend.bharatdemographic.com"
+// export const SERVER_URI = "https://backend.bharatdemographic.com"
 export const SERVER_BUCKET = "https://survey-media.blr1.digitaloceanspaces.com"
 
 
@@ -89,6 +89,11 @@ export const get_vrm_dashboard = "api/call-rating/dashboard"
 export const call_ratings = "api/call-rating/call-ratings"
 export const user_performance = "api/call-rating/userPerformance"
 
+// daily work report 
+export const dailyWorkReport = `${SERVER_URI}/api/user/getUsersWorkData`
+
+// report 2
+export const get_report_2 = "api/response/getCasteBasedData"
 
 // variables
 export const supervisorId = "675985aaa6b36c1fa78d5517"
