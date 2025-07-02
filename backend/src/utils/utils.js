@@ -356,9 +356,28 @@ const downloadDailyWorkExcel = async (data, res, req) => {
   res.end();
 };
 
+function generateUniqueSurveyId() {
+  const prefix = "survey-";
+  
+  // Base36 timestamp (short and always increasing)
+  const timestamp = Date.now().toString(36).toUpperCase(); // e.g., "L9K9GP"
+
+  // Random 2 letters
+  const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const randomLetters = Array.from({ length: 2 }, () =>
+    letters.charAt(Math.floor(Math.random() * letters.length))
+  ).join("");
+
+  return `${prefix}${randomLetters}${timestamp}`;
+}
+
+
 module.exports = {
   generateResetToken,
   downloadExcel,
   downloadDailyWorkExcel,
   generateOTPWithExpiry,
+  generateUniqueSurveyId
 };
+
+

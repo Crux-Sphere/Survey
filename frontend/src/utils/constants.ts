@@ -47,6 +47,7 @@ export const get_survey_responses_stats = "api/response/getSurveyResponseStats"
 export const get_survey_responses_by_family = "api/response/getGroupedByFamily"
 export const update_response = "api/response/updateResponse"
 export const save_quality_remark = "api/response/saveQualityRemark"
+export const delete_response = "api/response/deleteResponse"
 
 
 // questions

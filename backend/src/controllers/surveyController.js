@@ -3,6 +3,7 @@ const Responses = require("../models/response");
 const Data = require("../models/data");
 const User = require("../models/user");
 const Family = require("../models/family");
+const {generateUniqueSurveyId} = require("../utils/utils")
 
 const shuffleArray = (array) => {
   for (let i = array.length - 1; i > 0; i--) {
@@ -45,6 +46,7 @@ exports.saveSurvey = async (req, res) => {
 
     const survey = new Survey({
       name,
+      survey_id:generateUniqueSurveyId(),
       header_text,
       access_pin,
       ac_list,

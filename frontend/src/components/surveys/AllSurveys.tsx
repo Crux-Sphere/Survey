@@ -266,6 +266,9 @@ function AllSurveys({ queryParams, setQueryParams, updated }: AllSurveysProps) {
               <thead className="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-700 dark:text-gray-400">
                 <tr>
                   <th scope="col" className="px-6 py-3">
+                    Id
+                  </th>
+                  <th scope="col" className="px-6 py-3">
                     All surveys
                   </th>
                   <th scope="col" className="px-6 py-3">
@@ -288,6 +291,9 @@ function AllSurveys({ queryParams, setQueryParams, updated }: AllSurveysProps) {
                         key={index}
                         className="bg-white border-b dark:bg-gray-800 dark:border-gray-700"
                       >
+                        <td className="px-6 py-4 font-[500]">
+                          {el.survey_id || 0}
+                        </td>
                         <td
                           className="px-6 py-4 font-[500]"
                           onClick={() => {

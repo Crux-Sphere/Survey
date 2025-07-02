@@ -7,7 +7,12 @@ const surveySchema = new Schema(
       type: String,
       required: true,
     },
-    ac_list:[
+    survey_id: {
+      type: String,
+      unique: true,
+      required: true,
+    },
+    ac_list: [
       {
         ac_no: {
           type: String,
@@ -17,9 +22,9 @@ const surveySchema = new Schema(
             type: String,
           },
         ],
-      }
+      },
     ],
-    imported:{
+    imported: {
       type: Boolean,
       default: false,
     },
@@ -34,15 +39,15 @@ const surveySchema = new Schema(
       type: Boolean,
       default: false,
     },
-    sampling:{
-      type:Boolean,
-      default:false
+    sampling: {
+      type: Boolean,
+      default: false,
     },
-    min_sample_size:{
-      type:Number
+    min_sample_size: {
+      type: Number,
     },
-    max_sample_size:{
-      type:Number
+    max_sample_size: {
+      type: Number,
     },
     questions: {
       type: Schema.Types.Mixed,
@@ -55,11 +60,9 @@ const surveySchema = new Schema(
   },
   {
     timestamps: true,
-  },
+  }
 );
-
 
 const Survey = Mongoose.model("Survey99", surveySchema);
 
 module.exports = Survey;
-
