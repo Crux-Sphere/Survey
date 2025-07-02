@@ -35,7 +35,7 @@ interface ResponseTableProps {
   getUserResponses: any;
   setSelectedPanna: (val: string | null) => void;
   setCoordinates?: any;
-  setResponses: any;
+  setResponses?: any;
 }
 function ResponseTable({
   responses,
