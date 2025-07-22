@@ -17,7 +17,7 @@ const familySchema = new Schema(
     },
     house_no: {
       type: String,
-      required: true,
+      required: false,
     },
     // OLD FEATURE -- last name
     // last_name: {
