@@ -27,7 +27,9 @@ jobs:
 
     - name: Decode and add .env file for backend
       run: echo "${{ secrets.ENV }}" | base64 -d > backend/.env
-    
+    - name: Decode and add service account keys for backend
+      run: echo "${{ secrets.FIREBASE }}" | base64 -d > backend/src/firebase/serviceAccountKeys.json
+
     - name: Build and push backend Docker image
       run: |
         docker buildx build \
