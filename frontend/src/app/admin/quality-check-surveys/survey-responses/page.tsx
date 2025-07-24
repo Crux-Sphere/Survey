@@ -378,6 +378,8 @@ function Page() {
           getUserResponses={getUserResponses}
           setSelectedPanna={setSelectedPanna}
           update={() => setReset(!reset)}
+          page={page}
+          pageLimit={pageLimit}
         />
       ) : (
         !loading && (

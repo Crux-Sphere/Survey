@@ -13,6 +13,8 @@ import {
 import { GoCheckCircleFill } from "react-icons/go";
 import CustomModal from "../ui/Modal";
 import ButtonFilled from "../ui/buttons/ButtonFilled";
+import AudioComp from "../survey-responses/AudioComp";
+import { SERVER_BUCKET } from "@/utils/constants";
 
 interface ResponseTableProps {
   responses: any;
@@ -30,8 +32,10 @@ interface ResponseTableProps {
   selectedPanna: string | null;
   getUserResponses: any;
   setSelectedPanna: (val: string | null) => void;
-  update:(val:boolean)=>void
-  setResponses :any
+  update: (val: boolean) => void;
+  setResponses: any;
+  page?: number;
+  pageLimit?: number;
 }
 
 function ResponseGrid({
@@ -43,7 +47,9 @@ function ResponseGrid({
   getUserResponses,
   more,
   update,
-  setResponses
+  setResponses,
+  page = 1,
+  pageLimit = 10,
 }: ResponseTableProps) {
   const [localResponses, setLocalResponses] = useState(responses);
   const [notes, setNotes] = useState<string | null>(null);
@@ -79,7 +85,7 @@ function ResponseGrid({
 
     if (response.success) {
       toast.success("Successfully saved quality remark!");
-      getUserResponses()
+      getUserResponses();
     } else {
       toast.error("Failed to save!");
     }
@@ -100,6 +106,9 @@ function ResponseGrid({
       <table className="w-full table-auto">
         <thead className="">
           <tr className="bg-dark-gray text-white sticky top-0 left-0 z-50 ">
+            <th scope="col" className="px-6 py-3 whitespace-nowrap">
+              Sr.no
+            </th>
             <td className="min-w-32 px-4 py-2 border-b text-center whitespace-nowrap sticky left-0 bg-dark-gray">
               {" "}
               Quality check status
@@ -107,6 +116,12 @@ function ResponseGrid({
             <td className="px-4 py-2 border-b min-w-32 whitespace-nowrap text-center font-semibold">
               Quality remark
             </td>
+            <th scope="col" className="px-6 py-3 whitespace-nowrap">
+              AC
+            </th>
+            <th scope="col" className="px-6 py-3">
+              Booth
+            </th>
             <td className="px-4 py-2 border-b min-w-32 whitespace-nowrap text-center font-semibold">
               Panna pramukh
             </td>
@@ -122,6 +137,9 @@ function ResponseGrid({
             <td className="px-4 py-2 border-b min-w-32 whitespace-nowrap text-center font-semibold">
               User
             </td>
+            <th scope="col" className="px-6 py-3">
+              Audio
+            </th>
             {responses &&
               responses.length > 0 &&
               responses[0].responses.map((response: any, index: number) => (
@@ -164,8 +182,11 @@ function ResponseGrid({
                 }}
                 className="cursor-pointer"
                 key={rowIndex}
-              >
-                <td className="min-w-32 px-4 py-4 border-b h-full sticky left-0 bg-white w-full text-center">
+              > 
+                <td className="px-6 py-4 font-[500] text-center">
+                  {(page - 1) * pageLimit + rowIndex + 1}
+                </td>
+                <td className="min-w-32 px-4 </td>py-4 border-b h-full sticky left-0 bg-white w-full text-center">
                   {response.status === "Pending" ? (
                     <div className="flex gap-3">
                       <button
@@ -229,9 +250,18 @@ function ResponseGrid({
                   )}
                 </td>
                 <td className="min-w-32 px-4 py-4 border-b text-center">
-                  {response.quality_check_remarks
-                    && response.quality_check_remarks.length > 0 ? response.quality_check_remarks[response.quality_check_remarks.length -1].note
+                  {response.quality_check_remarks &&
+                  response.quality_check_remarks.length > 0
+                    ? response.quality_check_remarks[
+                        response.quality_check_remarks.length - 1
+                      ].note
                     : "--"}
+                </td>
+                <td className="px-6 py-4 font-[500] cursor-pointer">
+                  {response.ac_no || "--"}
+                </td>
+                <td className="px-6 py-4 font-[500] cursor-pointer">
+                  {response.booth_no || "--"}
                 </td>
                 <td className="min-w-32 px-4 py-4 border-b text-center">
                   {response.panna_pramukh_assigned
@@ -261,6 +291,12 @@ function ResponseGrid({
                 <td className="min-w-44 whitespace-nowrap px-4 py-2 border-b text-center">
                   {users.find((user) => user._id === response.user_id)?.name ||
                     "-"}
+                </td>
+                <td className="px-6 py-4 font-[500] whitespace-nowrap">
+                  {/* <AudioComp audioUrl="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"/> */}
+                  <AudioComp
+                    audioUrl={`${SERVER_BUCKET}/${response.audio_recording_path}`}
+                  />
                 </td>
 
                 {response.responses.map((res: any, colIndex: any) => (
