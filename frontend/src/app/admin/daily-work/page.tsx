@@ -491,9 +491,6 @@ export default function DailyWorkPage() {
                                                                 {row.response.audio_recording_path && (
                                                                     <AudioComp
                                                                         audioUrl={`${SERVER_BUCKET}/${row.response.audio_recording_path}`}
-                                                                        isPlaying={playingAudioIdx === globalIdx}
-                                                                        onPlay={() => setPlayingAudioIdx(globalIdx)}
-                                                                        onPause={() => setPlayingAudioIdx(null)}
                                                                     />
                                                                 )}
                                                             </td>
