@@ -3,6 +3,7 @@
 import ButtonFilled from "@/components/ui/buttons/ButtonFilled";
 import FilledGreyButton from "@/components/ui/buttons/FilledGreyButton";
 import TwoDatePicker from "@/components/ui/date/TwoDatePicker";
+import type { State } from "@popperjs/core";
 import { Suspense, useEffect, useState } from "react";
 import {
   downloadResponses,
@@ -27,6 +28,9 @@ import { qualityCheckId, surveyCollectorId } from "@/utils/constants";
 import useUser from "@/hooks/useUser";
 import ResponseGrid from "@/components/qualityCheck/ResponseGrid";
 import QualityResponseModal from "@/components/survey-responses/QualityResponseModal";
+import Select2 from "react-select";
+import { SlCalender } from "react-icons/sl";
+import StyledTwoDatePicker from "@/components/ui/date/StyledTwoDatePicker";
 
 function Page() {
   const [startDate, setStartDate] = useState<Date | null>(null);
@@ -64,6 +68,9 @@ function Page() {
     lng: 0,
   });
 
+  const [acFilters, setAcFilters] = useState<string[]>([]);
+  const [boothFilters, setBoothFilters] = useState<string[]>([]);
+
   //  pagination
   const [totalResponsePages, setTotalResponsePages] = useState<number>(1);
   const [pageLimit, setPageLimit] = useState<number>(10);
@@ -72,11 +79,10 @@ function Page() {
   // downloading
   const [downloading, setDownloading] = useState<boolean>(false);
   const [acList, setAcList] = useState<any>([]);
-  
 
   const searchParams = useSearchParams();
   const userData = useUser();
-  console.log(userData)
+  console.log(userData);
   const surveyId = searchParams.get("survey_id");
   const router = useRouter();
   const { isLoaded } = useJsApiLoader({
@@ -85,11 +91,11 @@ function Page() {
   });
   useEffect(() => {
     getQuestions();
-    if(userData){
+    if (userData) {
       getUserResponses();
     }
     getUsers();
-  }, [reset, page, pageLimit,userData]);
+  }, [reset, page, pageLimit, userData, acFilters, boothFilters]);
 
   useEffect(() => {
     if (acList.length > 0) {
@@ -109,10 +115,12 @@ function Page() {
       surveyId,
       startDate: nStartDate,
       endDate: nEndDate,
-      userId:userData.id,
+      userId: userData.id,
       filters: appliedFilters,
       limit: pageLimit,
       page,
+      boothFilters,
+      acFilters,
     };
     setLoading(true);
     const response = await getSurveyResponses(params);
@@ -182,45 +190,47 @@ function Page() {
   };
 
   // Function to handle export
-  const exportToExcel = async () => {
-    try {
-      setDownloading(true);
-      let nStartDate, nEndDate;
-      if (startDate && endDate) {
-        nStartDate = new Date(startDate || "");
-        nEndDate = new Date(endDate || "");
-        nStartDate.setDate(nStartDate.getDate() + 1);
-        nEndDate.setDate(nEndDate.getDate() + 1);
-      }
-      const params = {
-        surveyId,
-        startDate: nStartDate,
-        endDate: nEndDate,
-        userId,
-        filters: appliedFilters,
-        download: true,
-      };
-      let filename = "response.xlsx";
-      const response: any = await downloadResponses(params);
+  // const exportToExcel = async () => {
+  //   try {
+  //     setDownloading(true);
+  //     let nStartDate, nEndDate;
+  //     if (startDate && endDate) {
+  //       nStartDate = new Date(startDate || "");
+  //       nEndDate = new Date(endDate || "");
+  //       nStartDate.setDate(nStartDate.getDate() + 1);
+  //       nEndDate.setDate(nEndDate.getDate() + 1);
+  //     }
+  //     const params = {
+  //       surveyId,
+  //       startDate: nStartDate,
+  //       endDate: nEndDate,
+  //       userId,
+  //       filters: appliedFilters,
+  //       download: true,
+  //       acFilters,
+  //       boothFilters,
+  //     };
+  //     let filename = "response.xlsx";
+  //     const response: any = await downloadResponses(params);
 
-      const contentDisposition = response.headers["content-disposition"];
-      console.log("header ======>", contentDisposition);
-      const file = contentDisposition.split("filename=")[1].replace(/"/g, "");
-      if (file) filename = file;
+  //     const contentDisposition = response.headers["content-disposition"];
+  //     console.log("header ======>", contentDisposition);
+  //     const file = contentDisposition.split("filename=")[1].replace(/"/g, "");
+  //     if (file) filename = file;
 
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", filename);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } catch (error) {
-      toast.error("Failed to export to Excel");
-    } finally {
-      setDownloading(false);
-    }
-  };
+  //     const url = window.URL.createObjectURL(new Blob([response.data]));
+  //     const link = document.createElement("a");
+  //     link.href = url;
+  //     link.setAttribute("download", filename);
+  //     document.body.appendChild(link);
+  //     link.click();
+  //     document.body.removeChild(link);
+  //   } catch (error) {
+  //     toast.error("Failed to export to Excel");
+  //   } finally {
+  //     setDownloading(false);
+  //   }
+  // };
 
   const options = users?.map((user) => ({
     value: user._id,
@@ -245,7 +255,7 @@ function Page() {
       <nav className="w-full py-3 px-8 flex flex-col gap-10 font-semibold">
         <h3 className="text-[24px] font-semibold">Survey Response</h3>
 
-        <div className="flex w-full gap-12">
+        {/* <div className="flex w-full gap-12">
           <Filters
             appliedFilters={appliedFilters}
             filters={filters}
@@ -270,14 +280,46 @@ function Page() {
               Back
             </FilledGreyButton>
           </div>
+        </div> */}
+
+        <div className="flex w-full gap-12">
+          <Filters
+            appliedFilters={appliedFilters}
+            filters={filters}
+            responses={responses}
+            selectedFilter={selectedFilter}
+            setAppliedFilters={setAppliedFilters}
+            setSelectedFilter={setSelectedFilter}
+            surveyQuestions={surveyQuestions}
+          />
+
+          <div>
+            <div className="flex space-x-2 text-black text-base font-semibold">
+              {/* <ButtonFilled
+                view={
+                  "btn-custom bg-green-500 flex items-center justify-center !text-[13px] !rounded-md !text-white !h-[40px] !w-[140px]"
+                }
+                loading={downloading}
+                onClick={exportToExcel}
+              >
+                Export to Excel
+              </ButtonFilled> */}
+              <FilledGreyButton
+                onClick={() => router.back()}
+                className="btn-custom !bg-gray-600 flex items-center justify-center !text-[13px] !rounded-md !text-white !h-[40px]"
+              >
+                Back
+              </FilledGreyButton>
+            </div>
+          </div>
         </div>
       </nav>
 
-      <div className="p-5 font-semibold text-sm ">
+      {/* <div className="p-5 font-semibold text-sm ">
         <div className="bg-light-gray space-y-4 w-full rounded-lg px-4 py-6">
           <div className="w-[780px] space-y-8 pb-6 ">
             <div className="flex gap-10">
-              {/* Date Range */}
+              
               <div>
                 <div className="flex gap-3 items-center mb-5">
                   <h1 className="">Date Range</h1>
@@ -308,7 +350,7 @@ function Page() {
             </div>
 
             <div className="flex gap-5 items-center">
-              {/* <div className="flex flex-col space-y-2 w-[352px]">
+              <div className="flex flex-col space-y-2 w-[352px]">
                 <Select
                   value={options.find((option) => option.value === userId)}
                   onChange={(selectedOption) =>
@@ -319,9 +361,9 @@ function Page() {
                   classNamePrefix="react-select"
                   isSearchable={true} // Enables search
                 />
-              </div> */}
+              </div>
 
-              {/* Action Buttons */}
+
               <div className="flex space-x-4">
                 <FilledGreyButton
                   onClick={() => {
@@ -358,6 +400,205 @@ function Page() {
             </div>
           </div>
         </div>
+      </div> */}
+
+      <div className="mt-2 font-semibold text-sm ">
+        <div className="bg-light-gray  w-full rounded-md shadow-md px-4 py-6 mb-5">
+          <div className="w-full">
+            <div className="flex gap-10">
+              {/* Date Range */}
+              <div>
+                <div className="flex gap-3 items-center mb-5">
+                  <h2 className="text-[16px]">Date Range</h2>
+                  <SlCalender size={20} />
+                </div>
+                <div className="w-fit flex items-center gap-4">
+
+
+                  {/* <TwoDatePicker
+                    className="w-[352px] h-10 relative"
+                    startDate={startDate}
+                    endDate={endDate}
+                    setStartDate={setStartDate}
+                    setEndDate={setEndDate}
+                    popperModifiers={[
+                      {
+                        name: "customStyle",
+                        enabled: true,
+                        phase: "write",
+                        fn: (data: { state: any }) => {
+                          const { state } = data;
+                          if (state && state.styles && state.styles.popper) {
+                            Object.assign(state.styles.popper, {
+                              zIndex: 10,
+                              transform: "translate(-5px, 50px)",
+                            });
+                          }
+                        },
+                      },
+                    ]}
+                  /> */}
+
+                  <StyledTwoDatePicker
+                    className="w-[352px] h-10 relative"
+                    startDate={startDate}
+                    endDate={endDate}
+                    setStartDate={setStartDate}
+                    setEndDate={setEndDate}
+                  />
+
+                  <ButtonFilled
+                    className="btn-custom bg-orange-500 flex items-center justify-center !text-[13px] !rounded-md !text-white !h-[40px] !w-[180px]"
+                    onClick={openModal}
+                  >
+                    Advanced data filter
+                  </ButtonFilled>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-5 items-center pt-4">
+              {/* Selected User */}
+              <div className="flex flex-col  w-[352px]">
+                {/* <Select2
+                  value={options.find((option) => option.value === userId)}
+                  onChange={(selectedOption) =>
+                    setUserId(selectedOption?.value || "")
+                  }
+                  options={options}
+                  placeholder="Select user"
+                  classNamePrefix="react-select"
+                  isSearchable={true} // Enables search
+                  styles={{
+                    menu: (provided) => ({
+                      ...provided,
+                      zIndex: 100,
+                    }),
+                  }}
+                /> */}
+                {/* ac filter here */}
+                {/* AC MultiSelect */}
+                {acList && acList.length > 0 && (
+                  <div className="mt-2">
+                    <label className="block text-xs mb-1">AC Filter</label>
+                    <Select2
+                      isMulti
+                      options={acList.map((ac: any) => ({
+                        value: ac.ac_no,
+                        label: ac.ac_no,
+                      }))}
+                      value={acFilters.map((ac) => ({ value: ac, label: ac }))}
+                      onChange={(selected) => {
+                        const values = (selected as any[]).map(
+                          (item) => item.value
+                        );
+                        setAcFilters(values);
+                      }}
+                      styles={{
+                        menu: (provided) => ({
+                          ...provided,
+                          zIndex: 100,
+                        }),
+                      }}
+                      placeholder="Select AC(s)"
+                      classNamePrefix="react-select"
+                    />
+                  </div>
+                )}
+                {/* Booth MultiSelect */}
+                {acList && acList.length > 0 && (
+                  <div className="mt-2">
+                    <label className="block text-xs mb-1">Booth Filter</label>
+                    <Select2
+                      isMulti
+                      options={
+                        // If you have booth list per AC, replace acList with booth list
+                        acList.flatMap((ac: any) =>
+                          (ac.booth_numbers || []).map((booth: any) => ({
+                            value: booth,
+                            label: booth,
+                          }))
+                        )
+                      }
+                      value={boothFilters.map((booth) => ({
+                        value: booth,
+                        label: booth,
+                      }))}
+                      onChange={(selected) => {
+                        const values = (selected as any[]).map(
+                          (item) => item.value
+                        );
+                        setBoothFilters(values);
+                      }}
+                      styles={{
+                        menu: (provided) => ({
+                          ...provided,
+                          zIndex: 100,
+                        }),
+                      }}
+                      placeholder="Select Booth(s)"
+                      classNamePrefix="react-select"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex space-x-2 self-end">
+                <FilledGreyButton
+                  onClick={() => {
+                    setStartDate(null);
+                    setEndDate(null);
+                    setUserId("");
+                    setAppliedFilters([]);
+                    setReset(!reset);
+                    setAcFilters([]);
+                    setBoothFilters([]);
+                  }}
+                  className="btn-custom bg-gray-800 flex items-center justify-center !text-[13px] !rounded-md !text-white !h-[40px]"
+                >
+                  Reset
+                </FilledGreyButton>
+                <ButtonFilled
+                  disabled={
+                    appliedFilters.length === 0 &&
+                    !userId.trim() &&
+                    !startDate &&
+                    !endDate
+                  }
+                  onClick={() => {
+                    if ((startDate && !endDate) || (endDate && !startDate)) {
+                      toast.error("Please select a complete date range!");
+                      return;
+                    } else {
+                      getUserResponses();
+                    }
+                  }}
+                  className="btn-custom bg-orange-700 flex items-center justify-center !text-[13px] !rounded-md !text-white !h-[40px]"
+                >
+                  Apply
+                </ButtonFilled>
+              </div>
+            </div>
+
+            {/* <div className="flex gap-2 pt-3">
+                    {acList && acList.length > 0 && (
+                      <ButtonFilled
+                        onClick={() => setUserModal(true)}
+                        className="text-blue-700 hover:text-gray-900 text-[14px]"
+                      >
+                        Assign Data
+                      </ButtonFilled>
+                    )}
+                    <ButtonFilled
+                      onClick={() => setBoothModal(true)}
+                      className="text-blue-700 hover:text-gray-900 text-[14px]"
+                    >
+                      Assign Booth
+                    </ButtonFilled>
+                  </div> */}
+          </div>
+        </div>
       </div>
       {loading && (
         <Loader className="h-[30vh] w-full flex justify-center items-center" />
@@ -372,7 +613,7 @@ function Page() {
           setResponseModalIsOpen={setResponseModalIsOpen}
           setSelectedResponse={setSelectedResponse}
           users={users}
-          setResponses = {setResponses}
+          setResponses={setResponses}
           assignMode={assignMode}
           setAssignedMode={setAssignMode}
           getUserResponses={getUserResponses}

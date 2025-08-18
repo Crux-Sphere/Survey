@@ -30,15 +30,15 @@ const responseSchema = new Schema(
     phone_no: {
       type: String,
     },
-    start:{
-      type:Date
+    start: {
+      type: Date,
     },
-    end:{
-      type:Date
+    end: {
+      type: Date,
     },
-    caste:{
-      type:String
-    },  
+    caste: {
+      type: String,
+    },
     responses: {
       type: Schema.Types.Mixed,
     },
@@ -85,13 +85,12 @@ const responseSchema = new Schema(
       },
     ],
     call_rating: {
-        // uid: {type: String},
-        rating: {type: String, enum: ["positive", "negative", "neutral"]},
-        comment: {type: String},
-    }
-    
+      // uid: {type: String},
+      rating: { type: String, enum: ["positive", "negative", "neutral"] },
+      comment: { type: String },
+    },
   },
-  { strict: false, timestamps: true },
+  { strict: false, timestamps: true }
 );
 
 const Response = mongoose.model("Response99", responseSchema);
