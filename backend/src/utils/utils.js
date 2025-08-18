@@ -48,7 +48,8 @@ const downloadExcel = async (data, res, req) => {
     { header: "S_no", key: "serial_no", width: 8 },
     { header: "Panna Pramukh", key: "panna_pramukh", width: 20 },
     { header: "Status", key: "status", width: 15 },
-    { header: "Remark", key: "remark", width: 30 },
+    // { header: "Remark", key: "remarks", width: 30 },
+    // { header: "Quality Check", key: "quality_check", width: 20 },
     { header: "Response Date", key: "response_date", width: 30 },
     { header: "User", key: "user", width: 20 },
     { header: "House number", key: "house_no", width: 20 },
@@ -60,6 +61,7 @@ const downloadExcel = async (data, res, req) => {
     { header: "Longitude", key: "longitude", width: 20 },
     { header: "Location link", key: "location_link", width: 20 },
     { header: "Audio", key: "audio", width: 20 },
+    { header: "QC Remarks", key: "qc_remarks", width: 40 }, // <-- Moved here
   ];
 
   const protocol = req.protocol || (req.secure ? "https" : "http");
@@ -196,6 +198,57 @@ const downloadExcel = async (data, res, req) => {
   });
 
   // --- Add data rows ---
+  // data.forEach((item, index) => {
+  //   const baseRow = {
+  //     serial_no: index + 1,
+  //     panna_pramukh: item.panna_pramukh_assigned?.name || "N/A",
+  //     status: item.contacted ? "Contacted" : "Not Contacted",
+  //     remark: item.remark || "No Remark",
+  //     response_date: item.updatedAt || item.createdAt || "N/A",
+  //     user: item.user_id?.name || "Unknown",
+  //     house_no: item.house_no || "N/A",
+  //     ac_no: item.ac_no || "N/A",
+  //     name: item.name || "N/A",
+  //     phone_no: item.phone_no || "N/A",
+  //     booth_no: item.booth_no || "N/A",
+  //     latitude: item.location_data?.latitude || "N/A",
+  //     longitude: item.location_data?.longitude || "N/A",
+  //     location_link: item.location_data
+  //       ? {
+  //           text: "View Location",
+  //           hyperlink: `${protocol}://maps.google.com/maps?q=${item.location_data.latitude},${item.location_data.longitude}`,
+  //         }
+  //       : "N/A",
+  //     audio: item.audio_recording_path
+  //       ? {
+  //           text: "Audio File",
+  //           hyperlink: `${process.env.BUCKET_URL}/${item.audio_recording_path}`,
+  //         }
+  //       : "N/A",
+  //   };
+
+  //   const responseData = {};
+
+  //   item.responses.forEach((resp) => {
+  //     if (resp.question_type === "Radio Grid") {
+  //       const lines = resp.response.split("\n");
+  //       lines.forEach((line) => {
+  //         const [sub, val] = line.split(":").map((s) => s.trim());
+  //         if (sub) {
+  //           const key = [...questionKeyToLabelMap.entries()].find(
+  //             ([k, v]) => v.main === resp.question && v.sub === sub
+  //           )?.[0];
+  //           if (key) responseData[key] = val || "No Response";
+  //         }
+  //       });
+  //     } else {
+  //       responseData[resp.question] = resp.response || "No Response";
+  //     }
+  //   });
+
+  //   worksheet.addRow({ ...baseRow, ...responseData });
+  // });
+
   data.forEach((item, index) => {
     const baseRow = {
       serial_no: index + 1,
@@ -223,6 +276,9 @@ const downloadExcel = async (data, res, req) => {
             hyperlink: `${process.env.BUCKET_URL}/${item.audio_recording_path}`,
           }
         : "N/A",
+      qc_remarks: Array.isArray(item.quality_check_remarks)
+        ? item.quality_check_remarks.map((r) => r.note).join("; ")
+        : "", // <-- Only QC remarks here
     };
 
     const responseData = {};
@@ -263,10 +319,10 @@ const downloadDailyWorkExcel = async (data, res, req) => {
   const worksheet = workbook.addWorksheet("Daily Work Report");
 
   const allQuestions = new Set();
-  data.forEach(user => {
-    (user.responses || []).forEach(respObj => {
+  data.forEach((user) => {
+    (user.responses || []).forEach((respObj) => {
       const resp = respObj.response || {};
-      (resp.responses || []).forEach(ans => {
+      (resp.responses || []).forEach((ans) => {
         allQuestions.add(ans.question);
       });
     });
@@ -284,7 +340,11 @@ const downloadDailyWorkExcel = async (data, res, req) => {
     { header: "AC No", key: "ac_no", width: 12 },
     { header: "Booth No", key: "booth_no", width: 12 },
     { header: "Created At", key: "createdAt", width: 22 },
-    ...questionList.map(q => ({ header: q, key: q, width:  Math.min(80, Math.max(30, Math.ceil(q.length / 2))) }))
+    ...questionList.map((q) => ({
+      header: q,
+      key: q,
+      width: Math.min(80, Math.max(30, Math.ceil(q.length / 2))),
+    })),
   ];
   worksheet.columns = headers;
 
@@ -306,26 +366,32 @@ const downloadDailyWorkExcel = async (data, res, req) => {
   });
 
   let serial = 1;
-  data.forEach(user => {
+  data.forEach((user) => {
     const durationH = Math.floor((user.workDurationMinutes || 0) / 60);
     const durationM = (user.workDurationMinutes || 0) % 60;
     // console.log('Excel Export:', user.userName, 'totalResponses:', user.totalResponses, 'responses.length:', (user.responses || []).length);
     (user.responses || []).forEach((respObj, idx) => {
       const resp = respObj.response || {};
-      console.log('  Response', idx + 1, resp._id || resp.createdAt);
+      console.log("  Response", idx + 1, resp._id || resp.createdAt);
       const row = {
         serial_no: serial++,
         userName: user.userName || "N/A",
         userEmail: user.userEmail || "N/A",
         totalResponses: user.totalResponses || 0,
         workDuration: `${durationH}h ${durationM}m`,
-        firstWorkTime: user.firstWorkTime ? new Date(user.firstWorkTime).toLocaleDateString("en-IN") : "N/A",
-        lastWorkTime: user.lastWorkTime ? new Date(user.lastWorkTime).toLocaleDateString("en-IN") : "N/A",
+        firstWorkTime: user.firstWorkTime
+          ? new Date(user.firstWorkTime).toLocaleDateString("en-IN")
+          : "N/A",
+        lastWorkTime: user.lastWorkTime
+          ? new Date(user.lastWorkTime).toLocaleDateString("en-IN")
+          : "N/A",
         ac_no: resp.ac_no || "",
         booth_no: resp.booth_no || "",
-        createdAt: resp.createdAt ? new Date(resp.createdAt).toLocaleString("en-IN") : "",
+        createdAt: resp.createdAt
+          ? new Date(resp.createdAt).toLocaleString("en-IN")
+          : "",
       };
-      (resp.responses || []).forEach(ans => {
+      (resp.responses || []).forEach((ans) => {
         row[ans.question] = ans.response || "";
       });
       worksheet.addRow(row);
@@ -344,7 +410,7 @@ const downloadDailyWorkExcel = async (data, res, req) => {
     });
   }
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toISOString().split("T")[0];
   const fileName = `Daily_Work_Report_${today}.xlsx`;
 
   res.setHeader(
@@ -358,7 +424,7 @@ const downloadDailyWorkExcel = async (data, res, req) => {
 
 function generateUniqueSurveyId() {
   const prefix = "survey-";
-  
+
   // Base36 timestamp (short and always increasing)
   const timestamp = Date.now().toString(36).toUpperCase(); // e.g., "L9K9GP"
 
@@ -371,13 +437,10 @@ function generateUniqueSurveyId() {
   return `${prefix}${randomLetters}${timestamp}`;
 }
 
-
 module.exports = {
   generateResetToken,
   downloadExcel,
   downloadDailyWorkExcel,
   generateOTPWithExpiry,
-  generateUniqueSurveyId
+  generateUniqueSurveyId,
 };
-
-

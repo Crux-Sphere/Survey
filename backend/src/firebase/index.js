@@ -46,7 +46,7 @@ async function sendNotificationToMultipleTokens(tokens, message) {
 
     // Log detailed results of the multicast
     console.log(
-      `Successfully sent notification to ${response.successCount} devices`,
+      `Successfully sent notification to ${response.successCount} devices`
     );
 
     // Log any devices that failed
@@ -54,7 +54,7 @@ async function sendNotificationToMultipleTokens(tokens, message) {
       response.responses.forEach((resp, index) => {
         if (!resp.success) {
           console.error(
-            `Failed to send to token ${tokens[index]}: ${resp.error}`,
+            `Failed to send to token ${tokens[index]}: ${resp.error}`
           );
         }
       });

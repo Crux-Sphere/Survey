@@ -16,8 +16,6 @@ function escapeRegex(string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-
-
 exports.saveResponse = async (req, res) => {
   console.log("here it works");
   console.log(req.files);
@@ -99,7 +97,7 @@ exports.saveResponse = async (req, res) => {
           alreadyExists.common_responses.map((response) => [
             response.question_id,
             response,
-          ]),
+          ])
         );
 
         responseToSave.responses = parsedResponses.map((response) => {
@@ -138,24 +136,27 @@ exports.saveResponse = async (req, res) => {
     }
 
     responseToSave.audio_recording_path = req.files.audio[0].key;
-    if( req.files.images && req.files.images.length > 0) {
+    if (req.files.images && req.files.images.length > 0) {
       responseToSave.images = req.files.images.map((file) => file.key);
-      
+
       // Loop through uploaded images and update corresponding responses
       req.files.images.forEach((imageFile) => {
         const originalName = imageFile.originalname;
         const imageKey = imageFile.key;
-        
+
         // Find and update the response that contains this image
         responseToSave.responses.forEach((response) => {
-          if (response.question_type === "Image" && Array.isArray(response.response)) {
+          if (
+            response.question_type === "Image" &&
+            Array.isArray(response.response)
+          ) {
             response.response = response.response.map((imageResponse) => {
               if (imageResponse.name === originalName) {
                 return {
                   ...imageResponse,
                   name: imageKey, // Replace name with key
-                  key: imageKey,  // Add key field
-                  url: imageFile.location // Add full URL
+                  key: imageKey, // Add key field
+                  url: imageFile.location, // Add full URL
                 };
               }
               return imageResponse;
@@ -170,7 +171,7 @@ exports.saveResponse = async (req, res) => {
     if (createdNewFamily) {
       await Family.updateOne(
         { _id: responseToSave.family_id },
-        { $set: { family_head: response._id } },
+        { $set: { family_head: response._id } }
       );
     }
 
@@ -178,7 +179,7 @@ exports.saveResponse = async (req, res) => {
       { _id: survey_id },
       {
         $inc: { response_count: 1 },
-      },
+      }
     );
     if (!survey) {
       return res
@@ -281,11 +282,11 @@ exports.saveResponses = async (req, res) => {
       const acNo = response.ac_no || null;
       const boothNo = response.booth_no || null;
       const houseNo = response.responses.find(
-        (r) => r.question === "houseno",
+        (r) => r.question === "houseno"
       )?.response;
 
-      console.log("ac_no -->",acNo)
-      console.log("booth_no -->",boothNo)
+      console.log("ac_no -->", acNo);
+      console.log("booth_no -->", boothNo);
       let familyId = null;
 
       if (acNo && boothNo && houseNo) {
@@ -324,7 +325,7 @@ exports.saveResponses = async (req, res) => {
     await Responses.insertMany(responsesArray);
 
     console.log(
-      `${responsesArray.length} responses saved successfully with family IDs.`,
+      `${responsesArray.length} responses saved successfully with family IDs.`
     );
     return res.status(201).json({
       success: true,
@@ -367,13 +368,13 @@ exports.getAllResponses = async (req, res) => {
       limit = 4,
       contacted,
       acFilters,
-      boothFilters
+      boothFilters,
     } = req.query;
     // console.log("query is------>", req.query);
-    console.log("finding survey")
+    console.log("finding survey");
     const selectedSurvey = await Survey.findById(surveyId);
     const question_type_map = {};
-    console.log("creating survey question type map")
+    console.log("creating survey question type map");
     selectedSurvey.questions.forEach((surv) => {
       const key = surv.question_id;
       const val = surv.type;
@@ -410,7 +411,7 @@ exports.getAllResponses = async (req, res) => {
       if (isNotCollector) {
         const { ac_list } = userData;
         const filterCriteria = ac_list.flatMap(({ ac_no, booth_numbers }) =>
-          booth_numbers.map((booth_no) => ({ ac_no, booth_no })),
+          booth_numbers.map((booth_no) => ({ ac_no, booth_no }))
         );
 
         if (filterCriteria.length > 0) {
@@ -421,10 +422,10 @@ exports.getAllResponses = async (req, res) => {
       }
     }
 
-    if(acFilters && acFilters.length > 0) { 
+    if (acFilters && acFilters.length > 0) {
       matchStage.ac_no = { $in: acFilters };
     }
-    if(boothFilters && boothFilters.length > 0) {
+    if (boothFilters && boothFilters.length > 0) {
       matchStage.booth_no = { $in: boothFilters };
     }
 
@@ -555,6 +556,7 @@ exports.getAllResponses = async (req, res) => {
           location_data: 1,
           createdAt: 1,
           audio_recording_path: 1,
+          qc_remarks: 1,
           "responses.question_id": 1,
           "responses.question_type": 1,
           "responses.question": 1,
@@ -650,7 +652,7 @@ exports.getAllResponses = async (req, res) => {
     // Calculate total responses count
     console.log(JSON.stringify(aggregationPipeline, null, 2));
 
-    console.log("calculating total count")
+    console.log("calculating total count");
     const totalResponses = await Responses.aggregate([
       ...aggregationPipeline,
       { $count: "totalResponses" },
@@ -659,12 +661,14 @@ exports.getAllResponses = async (req, res) => {
       totalResponses.length > 0 ? totalResponses[0].totalResponses : 0;
 
     if (download) {
-      const filteredResponse = await Responses.aggregate(aggregationPipeline).allowDiskUse(true);
+      const filteredResponse = await Responses.aggregate(
+        aggregationPipeline
+      ).allowDiskUse(true);
       const fin = filteredResponse.map((f) =>
         Responses.findById(f._id)
           .populate("panna_pramukh_assigned")
           .populate("user_id")
-          .populate("survey_id"),
+          .populate("survey_id")
       );
 
       const re = await Promise.all(fin);
@@ -674,7 +678,7 @@ exports.getAllResponses = async (req, res) => {
           .status(404)
           .json({ success: "false", message: "Response not found" });
       }
-      await downloadExcel(re, res,req);
+      await downloadExcel(re, res, req);
     } else {
       const pageNum = parseInt(page, 10);
       const limitNum = parseInt(limit, 10);
@@ -682,12 +686,14 @@ exports.getAllResponses = async (req, res) => {
 
       aggregationPipeline.push({ $skip: skip }, { $limit: limitNum });
 
-      console.log("calculating final responses")
-      const filteredResponse = await Responses.aggregate(aggregationPipeline).allowDiskUse(true);
+      console.log("calculating final responses");
+      const filteredResponse = await Responses.aggregate(
+        aggregationPipeline
+      ).allowDiskUse(true);
 
-      console.log("taking panna")
+      console.log("taking panna");
       const fin = filteredResponse.map((f) =>
-        Responses.findById(f._id).populate("panna_pramukh_assigned"),
+        Responses.findById(f._id).populate("panna_pramukh_assigned")
       );
       const re = await Promise.all(fin);
       // console.log("res-->",re)
@@ -800,7 +806,6 @@ exports.getResponsesGroupedByFamily = async (req, res) => {
 };
 
 exports.getSurveyResponses = async (req, res) => {
-
   try {
     const { search, sortOrder = "desc", page = 1, limit = 10 } = req.query; // Default values for page and limit
     console.log("route is hitting --- >");
@@ -830,8 +835,8 @@ exports.getSurveyResponses = async (req, res) => {
       },
       {
         $match: {
-          "surveyDetails.sampling": false
-        }
+          "surveyDetails.sampling": false,
+        },
       },
       {
         $project: {
@@ -865,7 +870,7 @@ exports.getSurveyResponses = async (req, res) => {
       },
       {
         $limit: pageSize, // Limit the number of documents for pagination
-      },
+      }
     );
 
     const results = await Responses.aggregate(pipeline).allowDiskUse(true);
@@ -875,7 +880,9 @@ exports.getSurveyResponses = async (req, res) => {
     countPipeline.push({
       $count: "totalCount",
     });
-    const countResult = await Responses.aggregate(countPipeline).allowDiskUse(true);
+    const countResult = await Responses.aggregate(countPipeline).allowDiskUse(
+      true
+    );
     const totalCount = countResult.length > 0 ? countResult[0].totalCount : 0;
     const totalPages = Math.ceil(totalCount / pageSize);
 
@@ -1093,15 +1100,17 @@ exports.getSurveyResponseStats = async (req, res) => {
         },
       },
       {
-        $sort:{
-          question_id:1
-        }
-      }
+        $sort: {
+          question_id: 1,
+        },
+      },
     ];
 
     console.log(JSON.stringify(aggregationPipeline, null, 2));
 
-    const stats = await Responses.aggregate(aggregationPipeline).allowDiskUse(true);
+    const stats = await Responses.aggregate(aggregationPipeline).allowDiskUse(
+      true
+    );
     return res.status(200).json({ success: true, data: stats });
   } catch (error) {
     console.error("Error fetching survey response stats:", error);
@@ -1202,7 +1211,7 @@ exports.updateResponse = async (req, res) => {
           alreadyExists.common_responses.map((response) => [
             response.question_id,
             response,
-          ]),
+          ])
         );
 
         updateFields.responses = parsedResponses.map((response) => {
@@ -1240,7 +1249,7 @@ exports.updateResponse = async (req, res) => {
     const response = await Responses.findByIdAndUpdate(
       response_id,
       { $set: updateFields },
-      { new: true },
+      { new: true }
     );
 
     if (!response) {
@@ -1375,7 +1384,7 @@ exports.downloadVoter = async (req, res) => {
     const templatePath = path.join(__dirname, "..", "views", "voterCard.ejs");
     const htmlContent = await ejs.renderFile(
       templatePath,
-      voterData.toObject(),
+      voterData.toObject()
     );
 
     // Use Puppeteer to Generate PDF
@@ -1414,7 +1423,7 @@ exports.downloadVoter = async (req, res) => {
     res.setHeader("Content-Type", "application/pdf"); // Ensure it's PDF content type
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="card_${id}.pdf"`,
+      `attachment; filename="card_${id}.pdf"`
     ); // Set filename dynamically
     console.log("sending pdf buffer");
 
@@ -1456,7 +1465,7 @@ exports.saveVoteStatus = async (req, res) => {
       responseToUpdate,
       {
         new: true,
-      },
+      }
     );
     console.log("updatedResponse", updatedResponse.vote_status);
     return res
@@ -1489,24 +1498,27 @@ exports.checkPhoneNo = async (req, res) => {
   try {
     const { surveyId, phone } = req.body;
 
-    const existingResponse = await Responses.find({ survey_id: surveyId, phone_no: phone });
+    const existingResponse = await Responses.find({
+      survey_id: surveyId,
+      phone_no: phone,
+    });
 
     if (existingResponse.length > 0) {
       return res.status(409).json({
         success: false,
         message: "Duplicate response found",
-        data: existingResponse
+        data: existingResponse,
       });
     }
 
     return res.status(200).json({
       success: true,
-      message: "No duplicate responses found"
+      message: "No duplicate responses found",
     });
   } catch (err) {
     return res.status(500).json({
       success: false,
-      message: "Error finding uniqueness of phone number"
+      message: "Error finding uniqueness of phone number",
     });
   }
 };
@@ -1515,18 +1527,23 @@ exports.deleteResponse = async (req, res) => {
   try {
     const { response_id } = req.body;
     if (!response_id) {
-      return res.status(400).json({ success: false, message: "Response ID is required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Response ID is required" });
     }
     const deleted = await Responses.findByIdAndDelete(response_id);
     if (!deleted) {
-      return res.status(404).json({ success: false, message: "Response not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Response not found" });
     }
-    return res.status(200).json({ success: true, message: "Response deleted successfully" });
+    return res
+      .status(200)
+      .json({ success: true, message: "Response deleted successfully" });
   } catch (error) {
     return res.status(400).json({ success: false, message: error.message });
   }
 };
-
 
 exports.getCasteBasedData = async (req, res) => {
   try {
@@ -1600,4 +1617,4 @@ exports.getCasteBasedData = async (req, res) => {
     console.error(error);
     return res.status(500).json({ success: false, message: error.message });
   }
-}
+};

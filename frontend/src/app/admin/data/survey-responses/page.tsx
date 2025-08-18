@@ -215,7 +215,7 @@ function Page() {
       };
       let filename = "response.xlsx";
       const response: any = await downloadResponses(params);
-
+      console.log("=======================================================",response)
       const contentDisposition = response.headers["content-disposition"];
       console.log("header ======>", contentDisposition);
       const file = contentDisposition.split("filename=")[1].replace(/"/g, "");

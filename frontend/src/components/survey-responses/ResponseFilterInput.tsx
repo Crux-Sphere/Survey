@@ -87,6 +87,7 @@ function ResponseFilterInput({
   }
 
   return (
+    
     <input
       disabled={
         questionType.trim().length === 0 || operator.trim().length === 0
