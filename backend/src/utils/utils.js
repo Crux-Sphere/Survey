@@ -71,8 +71,10 @@ const downloadExcel = async (data, res, req) => {
     fileName = data[0].survey_id?.name?.split(" ").join("_") || "Responses";
   }
 
-  // --- Build question map ---
+  // --- Build question map from survey definition ---
   const questionMap = new Map(); // question => { type, subQuestions }
+
+  // First, build from actual responses (this was working before)
   data.forEach((item) => {
     item.responses.forEach((resp) => {
       if (!questionMap.has(resp.question)) {
@@ -91,9 +93,69 @@ const downloadExcel = async (data, res, req) => {
             subQuestions: [],
           });
         }
+      } else if (resp.question_type === "Radio Grid") {
+        // Add any new sub-questions we encounter
+        const existingData = questionMap.get(resp.question);
+        const newSubQs = resp.response
+          .split("\n")
+          .map((line) => line.split(":")[0]?.trim())
+          .filter(Boolean);
+
+        const combinedSubQs = [
+          ...new Set([...existingData.subQuestions, ...newSubQs]),
+        ];
+        questionMap.set(resp.question, {
+          type: "Radio Grid",
+          subQuestions: combinedSubQs,
+        });
       }
     });
   });
+
+  // Then, enhance with survey definition for any missing questions or Radio Grid rows
+  if (data.length > 0 && data[0].survey_id && data[0].survey_id.questions) {
+    data[0].survey_id.questions.forEach((question) => {
+      if (!questionMap.has(question.question)) {
+        // Question not in responses at all, add it
+        if (question.question_type === "Radio Grid") {
+          let subQs = [];
+          if (question.parameters && question.parameters.row_options) {
+            subQs = question.parameters.row_options
+              .split("\n")
+              .map((row) => row.trim())
+              .filter(Boolean);
+          }
+          questionMap.set(question.question, {
+            type: "Radio Grid",
+            subQuestions: subQs,
+          });
+        } else {
+          questionMap.set(question.question, {
+            type: question.question_type,
+            subQuestions: [],
+          });
+        }
+      } else if (question.question_type === "Radio Grid") {
+        // Radio Grid exists, but ensure we have all sub-questions from definition
+        if (question.parameters && question.parameters.row_options) {
+          const definitionSubQs = question.parameters.row_options
+            .split("\n")
+            .map((row) => row.trim())
+            .filter(Boolean);
+
+          const existingData = questionMap.get(question.question);
+          const combinedSubQs = [
+            ...new Set([...existingData.subQuestions, ...definitionSubQs]),
+          ];
+
+          questionMap.set(question.question, {
+            type: "Radio Grid",
+            subQuestions: combinedSubQs,
+          });
+        }
+      }
+    });
+  }
 
   // --- Prepare Headers ---
   const headerRow1 = baseHeaders.map((h) => h.header);

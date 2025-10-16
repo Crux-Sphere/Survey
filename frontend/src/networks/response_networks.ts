@@ -134,3 +134,20 @@ export const getReport2 = async(params:any) =>{
     return { success: false, message: "Something Went Wrong", error };
   }
 }
+
+export const importSurveyFromExcel = async(formData: FormData) =>{
+  try {
+    const options :AxiosRequestConfig = {
+      method: "POST",
+      url: `${SERVER_URI}/api/response/importSurveyFromExcel`,
+      data: formData,
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    };
+    const response = await axios.request(options);
+    return response.data;
+  } catch (error) {
+    return { success: false, message: "Something Went Wrong", error };
+  }
+}

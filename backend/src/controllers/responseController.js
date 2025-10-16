@@ -1618,3 +1618,206 @@ exports.getCasteBasedData = async (req, res) => {
     return res.status(500).json({ success: false, message: error.message });
   }
 };
+
+exports.importSurveyFromExcel = async (req, res) => {
+  try {
+    const ExcelJS = require("exceljs");
+    const { surveyName } = req.body;
+
+    if (!surveyName) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Survey name is required" });
+    }
+
+    if (!req.file) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Excel file is required" });
+    }
+
+    // Read the Excel file
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(req.file.buffer);
+    const worksheet = workbook.worksheets[0];
+
+    if (!worksheet) {
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "Invalid Excel file - no worksheet found",
+        });
+    }
+
+    // Create a new survey
+    const { generateUniqueSurveyId } = require("../utils/utils");
+    const newSurvey = new Survey({
+      name: surveyName,
+      survey_id: generateUniqueSurveyId(),
+      questions: [],
+      published: true,
+    });
+
+    // Parse headers from row 2 (sub-questions row)
+    const headerRow1 = [];
+    const headerRow2 = [];
+
+    worksheet.getRow(1).eachCell((cell, colNumber) => {
+      headerRow1[colNumber] = cell.value;
+    });
+
+    worksheet.getRow(2).eachCell((cell, colNumber) => {
+      headerRow2[colNumber] = cell.value;
+    });
+
+    // Skip base headers and get question columns
+    const baseHeaderCount = 16; // Based on your Excel structure
+    const questions = [];
+    const questionMap = new Map();
+
+    for (let i = baseHeaderCount + 1; i <= headerRow1.length; i++) {
+      const mainQuestion = headerRow1[i];
+      const subQuestion = headerRow2[i];
+
+      if (mainQuestion && mainQuestion !== "") {
+        if (!questionMap.has(mainQuestion)) {
+          const questionObj = {
+            question: mainQuestion,
+            question_type:
+              subQuestion && subQuestion !== ""
+                ? "Radio Grid"
+                : "Single line Text",
+            parameters:
+              subQuestion && subQuestion !== ""
+                ? { row_options: subQuestion }
+                : {},
+          };
+          questions.push(questionObj);
+          questionMap.set(mainQuestion, questionObj);
+        } else if (subQuestion && subQuestion !== "") {
+          // Add to existing Radio Grid row_options
+          const existingQ = questionMap.get(mainQuestion);
+          if (existingQ.parameters.row_options) {
+            existingQ.parameters.row_options += `\n${subQuestion}`;
+          }
+        }
+      }
+    }
+
+    newSurvey.questions = questions;
+    await newSurvey.save();
+
+    // Parse and save responses
+    const responses = [];
+    const currentDate = new Date();
+
+    worksheet.eachRow((row, rowNumber) => {
+      if (rowNumber <= 2) return; // Skip header rows
+
+      // Parse date from cell 5 (Response Date column)
+      let responseDate = currentDate;
+      const dateCellValue = row.getCell(5).value;
+      if (dateCellValue && dateCellValue instanceof Date) {
+        responseDate = dateCellValue;
+      } else if (dateCellValue && typeof dateCellValue === "string") {
+        const parsedDate = new Date(dateCellValue);
+        if (!isNaN(parsedDate.getTime())) {
+          responseDate = parsedDate;
+        }
+      }
+
+      // Parse location data
+      const latValue = row.getCell(12).value;
+      const lngValue = row.getCell(13).value;
+      const latitude =
+        typeof latValue === "number"
+          ? latValue
+          : latValue === "N/A"
+          ? 0
+          : parseFloat(latValue) || 0;
+      const longitude =
+        typeof lngValue === "number"
+          ? lngValue
+          : lngValue === "N/A"
+          ? 0
+          : parseFloat(lngValue) || 0;
+
+      const responseData = {
+        survey_id: newSurvey._id,
+        name: row.getCell(9).value || "",
+        phone_no: String(row.getCell(10).value || ""),
+        ac_no: String(row.getCell(8).value || ""),
+        booth_no: String(row.getCell(11).value || ""),
+        house_no: String(row.getCell(7).value || ""),
+        location_data: {
+          latitude: latitude,
+          longitude: longitude,
+        },
+        responses: [],
+        createdAt: responseDate,
+        updatedAt: responseDate,
+      };
+
+      // Parse question responses
+      for (let i = baseHeaderCount + 1; i <= headerRow1.length; i++) {
+        const mainQuestion = headerRow1[i];
+        const subQuestion = headerRow2[i];
+        const cellValue = row.getCell(i).value;
+
+        if (cellValue && cellValue !== "N/A" && cellValue !== "No Response") {
+          const questionObj = questions.find(
+            (q) => q.question === mainQuestion
+          );
+          if (questionObj) {
+            if (questionObj.question_type === "Radio Grid") {
+              // Find or create Radio Grid response
+              let gridResponse = responseData.responses.find(
+                (r) => r.question === mainQuestion
+              );
+              if (!gridResponse) {
+                gridResponse = {
+                  question: mainQuestion,
+                  question_type: "Radio Grid",
+                  response: "",
+                };
+                responseData.responses.push(gridResponse);
+              }
+              if (gridResponse.response) {
+                gridResponse.response += `\n${subQuestion}: ${cellValue}`;
+              } else {
+                gridResponse.response = `${subQuestion}: ${cellValue}`;
+              }
+            } else {
+              responseData.responses.push({
+                question: mainQuestion,
+                question_type: questionObj.question_type,
+                response: String(cellValue),
+              });
+            }
+          }
+        }
+      }
+
+      if (responseData.responses.length > 0) {
+        responses.push(responseData);
+      }
+    });
+
+    // Save all responses
+    if (responses.length > 0) {
+      await Responses.insertMany(responses);
+      newSurvey.response_count = responses.length;
+      await newSurvey.save();
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Survey imported successfully with ${responses.length} responses`,
+      survey_id: newSurvey._id,
+    });
+  } catch (error) {
+    console.error("Import error:", error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};

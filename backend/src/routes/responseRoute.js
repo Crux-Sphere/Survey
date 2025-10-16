@@ -15,8 +15,6 @@ const s3 = new S3Client({
   },
 });
 
-
-
 // const storage = multer.diskStorage({
 //   destination: function (req, file, cb) {
 //     if (req.path === "/saveCallRecording") {
@@ -51,11 +49,11 @@ const storage = multerS3({
 //   storage: storage,
 //   limits: { fileSize: 200 * 1024 * 1024 }, // 200MB file size limit
 // });
-const upload = multer({ 
-  storage: storage
- });
+const upload = multer({
+  storage: storage,
+});
 
-
+const uploadMemory = multer({ storage: multer.memoryStorage() });
 
 router.post(
   "/saveResponse",
@@ -83,14 +81,15 @@ router.get("/getCount", responseController.getCount);
 router.get("/getAllSurveyResponses", responseController.getSurveyResponses);
 router.get(
   "/getSurveyResponseStats",
-  responseController.getSurveyResponseStats,
+  responseController.getSurveyResponseStats
 );
 router.get("/getMediaResource", responseController.getMediaResource);
 router.get(
   "/getGroupedByFamily",
-  responseController.getResponsesGroupedByFamily,
+  responseController.getResponsesGroupedByFamily
 );
-router.post("/updateResponse", 
+router.post(
+  "/updateResponse",
   upload.fields([
     { name: "images", maxCount: 10 },
     { name: "audio", maxCount: 1 },
@@ -106,4 +105,9 @@ router.post("/saveQualityRemark", responseController.saveQualityRemark);
 router.post("/checkPhone", responseController.checkPhoneNo);
 router.post("/deleteResponse", responseController.deleteResponse);
 router.get("/getCasteBasedData", responseController.getCasteBasedData);
+router.post(
+  "/importSurveyFromExcel",
+  uploadMemory.single("excelFile"),
+  responseController.importSurveyFromExcel
+);
 module.exports = router;
