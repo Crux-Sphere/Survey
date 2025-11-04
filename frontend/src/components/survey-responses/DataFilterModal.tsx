@@ -111,7 +111,7 @@ function DataFilterModal({
                     value={response.question_id}
                     className="text-secondary-300 px-4 py-2 text-left border-b min-w-32 whitespace-nowrap"
                   >
-                    {response.parameters.question}
+                    {response.parameters?.question || null}
                   </option>
                 ))}
             </select>
