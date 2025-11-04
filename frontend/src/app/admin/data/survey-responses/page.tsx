@@ -130,11 +130,11 @@ function Page() {
     setResponses(response.data);
     setTotalResponsePages(response.totalPages);
     console.log("responses of responses ------>", response);
-    if (response.data && response.data.length > 0) {
+    if (response.data && response.data.length > 0 && response.data[0].responses) {
       setQuestions(
         response.data[0].responses.map((res: any) => ({
-          question: res.question,
-          question_id: res.question_id,
+          question: res?.question || '',
+          question_id: res?.question_id || '',
         }))
       );
     }
