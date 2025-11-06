@@ -23,6 +23,18 @@ interface FormData {
   questions: Question[];
 }
 
+// Helper function to initialize parameters for different question types
+function getDefaultParameters(existingParams: any = {}) {
+  return {
+    question: "",
+    question_required: false,
+    question_media_type: "",
+    question_image: "",
+    // Add any other common parameters here
+    ...existingParams // Override with existing parameters
+  };
+}
+
 function SurveyForm() {
   // search params
   const searchParams = useSearchParams();
@@ -59,46 +71,141 @@ function SurveyForm() {
   // Effects
   useEffect(() => {
     if (_id) {
-      handlegetSurveyData();
+      getSurveyData();
     }
   }, [_id]);
 
   // handle get survey
-  async function handlegetSurveyData() {
+  async function getSurveyData() {
     const params = { _id };
     setLoading(true);
     const response = await getSurvey(params);
     setLoading(false);
+    
+    console.log("Survey data response:", response);
     if (response.success) {
-      const formMappings = FormMappings();
-      const receivedForms = response.data.questions?.map((question: any) => ({
-        component: formMappings[question.type],
-        hide: true,
-      }));
-      if (receivedForms) setForms(receivedForms);
-      remove();
-      let max = 10;
-      response.data.questions?.forEach((question: any, index: number) => {
-        max = question.question_id > max ? question.question_id : max;
-        append({
-          question_id: question.question_id,
-          type: question.type,
-          parameters: question.parameters,
-          children: question.children,
-          dependency: question.dependency,
-          randomize: question.randomize,
-          common: question.common || false,
-          unique: question.unique || false,
+      try {
+        const formMappings = FormMappings();
+        
+        // Validate questions data
+        if (!response.data.questions || !Array.isArray(response.data.questions)) {
+          console.warn("Invalid questions data:", response.data.questions);
+          toast.error("Invalid survey data received");
+          return;
+        }
+        
+        const receivedForms = response.data.questions?.map((questionData: any, index: number) => {
+          console.log(`Processing question ${index}:`, {
+            type: questionData?.type,
+            question_type: questionData?.question_type,
+            question_id: questionData?.question_id,
+            hasParameters: !!questionData?.parameters,
+            fullQuestion: questionData
+          });
+          
+          if (!questionData) {
+            console.warn("Question is null or undefined at index", index);
+            return null;
+          }
+          
+          // Handle both 'type' and 'question_type' properties
+          const questionType = questionData.type || questionData.question_type;
+          if (!questionType) {
+            console.warn("Question missing both 'type' and 'question_type' properties:", questionData);
+            return null;
+          }
+          
+          const component = formMappings[questionType];
+          if (!component) {
+            console.error(`❌ No component found for question type: "${questionType}". Available types:`, Object.keys(formMappings));
+            console.error("Full question data:", questionData);
+            return null;
+          }
+          console.log(`✅ Found component for type: "${questionType}"`);
+          return {
+            component,
+            hide: false,
+          };
+        }).filter(Boolean); // Remove null entries
+        
+        if (receivedForms) {
+          console.log("Setting forms with length:", receivedForms.length);
+          console.log("Original questions length:", response.data.questions?.length);
+          console.log("Filtered forms length:", receivedForms.length);
+          setForms(receivedForms);
+        }
+        remove();
+        let max = 10;
+        let processedCount = 0;
+        response.data.questions?.forEach((questionData: any, index: number) => {
+        // Ensure we have valid question data
+        if (!questionData || typeof questionData !== 'object') {
+          console.warn(`Invalid question data at index ${index}:`, questionData);
+          return;
+        }
+        
+        const questionType = questionData.type || questionData.question_type;
+        if (!questionType) {
+          console.warn(`Question at index ${index} has no type, skipping:`, questionData);
+          return;
+        }
+        
+        const questionId = questionData.question_id || index;
+        max = questionId > max ? questionId : max;
+        
+        // Initialize parameters with default values
+        const defaultParameters = getDefaultParameters(questionData.parameters);
+
+        console.log(`Appending question ${processedCount}:`, {
+          question_id: questionId,
+          type: questionType,
+          question: questionData.question
         });
-        Object.keys(question.parameters).forEach((parameter: string) =>
+
+        // Ensure parameters include the question text
+        if (questionData.question && !defaultParameters.question) {
+          defaultParameters.question = questionData.question;
+        }
+
+        append({
+          question_id: questionId,
+          type: questionType,
+          parameters: defaultParameters,
+          children: questionData.children || [],
+          dependency: questionData.dependency || [],
+          randomize: questionData.randomize || false,
+          common: questionData.common || false,
+          unique: questionData.unique || false,
+        });
+        
+        // Safety check for parameters
+        if (questionData.parameters && typeof questionData.parameters === 'object') {
+          Object.keys(questionData.parameters).forEach((parameter: string) =>
+            setValue(
+              `questions.${processedCount}.parameters[${parameter}]`,
+              questionData.parameters[parameter],
+              { shouldDirty: false }
+            )
+          );
+        }
+        
+        // Set the question text if it exists
+        if (questionData.question) {
           setValue(
-            `questions.${index}.parameters[${parameter}]`,
-            question.parameters[parameter],
+            `questions.${processedCount}.parameters.question`,
+            questionData.question,
             { shouldDirty: false }
-          )
-        );
+          );
+        }
+        processedCount++;
       });
+      
+      console.log(`Processed ${processedCount} questions, forms array has ${receivedForms?.length || 0} items`);
       if (max !== 10) setQuestId(max + 1);
+      } catch (error) {
+        console.error("Error processing survey data:", error);
+        toast.error("Error loading survey data: " + (error instanceof Error ? error.message : "Unknown error"));
+      }
     } else {
       toast.error("Something went wrong");
     }
@@ -163,7 +270,7 @@ function SurveyForm() {
         unique:false,
         children: [],
         dependency: [],
-        parameters: {},
+        parameters: getDefaultParameters(),
       });
       setQuestId((prev) => prev + 1);
     }
@@ -249,7 +356,7 @@ function SurveyForm() {
       randomize: true,
       children: [],
       dependency: [],
-      parameters: {},
+      parameters: getDefaultParameters(),
       common: false,
       unique:false
     });
@@ -272,9 +379,24 @@ function SurveyForm() {
             {(loading || isSubmitting) && (
               <Loader className="w-full h-[50vh] flex justify-center items-center" />
             )}
+            {(() => {
+              console.log("Render debug - loading:", loading, "isSubmitting:", isSubmitting, "forms.length:", forms.length, "fields.length:", fields.length);
+              return null;
+            })()}
             {!loading && !isSubmitting && forms.length > 0
               ? fields.map((field, index) => {
-                  const Form = forms[index].component;
+                  // Check if forms array is properly synced
+                  if (index >= forms.length) {
+                    console.warn(`❌ Index ${index} exceeds forms array length ${forms.length}`);
+                    return null;
+                  }
+                  
+                  const Form = forms[index]?.component;
+                  if (!Form) {
+                    console.warn(`❌ No component found for index ${index}. Forms length: ${forms.length}, Fields length: ${fields.length}`);
+                    return null;
+                  }
+                  console.log(`✅ Rendering component for index ${index}`);
                   return (
                     <Form
                       handleDragEnter={() => handleDragEnter(index)}

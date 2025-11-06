@@ -97,7 +97,7 @@ function Page() {
         newConditions[qIndex][cIndex] = {
           ...newConditions[qIndex][cIndex],
           [field]: value,
-          type: selectedQuestion ? selectedQuestion.type : "",
+          type: selectedQuestion ? (selectedQuestion.type || selectedQuestion.question_type) : "",
         };
       } else {
         newConditions[qIndex][cIndex] = {
@@ -159,7 +159,7 @@ function Page() {
           surveyQuestions.map((question, qIndex) => (
             <div key={qIndex} onClick={() => toggleShow(qIndex)} className='flex flex-col w-full justify-between cursor-pointer border border-secondary-200'>
               <div className='w-full flex items-center justify-between p-5 bg-white'>
-                <p className='text-secondary-300 flex items-center gap-2'> <VscThreeBars/> {`Question ${qIndex + 1}: ${question.parameters.question}`}</p>
+                <p className='text-secondary-300 flex items-center gap-2'> <VscThreeBars/> {`Question ${qIndex + 1}: ${question.parameters?.question || question.question || "Untitled Question"}`}</p>
                 <div className='flex gap-2 items-center'>
                   <p>{conditions[qIndex] ?  `(${conditions[qIndex].length})` : ""}</p>
                   {show.includes(qIndex) ? <IoIosArrowUp /> : <IoIosArrowDown />}
@@ -190,7 +190,7 @@ function Page() {
                           <option value="">Select Question</option>
                           {surveyQuestions.slice(0, qIndex).map((q, index) => (
                             <option key={index} value={q.question_id}>
-                              {q.parameters.question}
+                              {q.parameters?.question || q.question || "Untitled Question"}
                             </option>
                           ))}
                         </select>

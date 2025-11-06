@@ -557,7 +557,7 @@ function AllSurveys({ queryParams, setQueryParams, updated }: AllSurveysProps) {
       </div>
       {/* Pagination Controls */}
       {!loading && (
-        <div className="flex gap-3 items-center pl-4 py-3 bg-[#fff] rounded-md shadow-md">
+        <div className="flex gap-3 items-center pl-4 py-3 bg-[#fff] rounded-md shadow-md mt-auto">
           {/* Limit Select */}
           <div>
             <label htmlFor="limit-select" className="mr-2 text-[13px]">

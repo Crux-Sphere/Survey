@@ -57,7 +57,7 @@ function Filters({
                     Number(res.question_id) === Number(filter.question)
                 );
                 if (questionResponse) {
-                  questionText = questionResponse.parameters.question;
+                  questionText = questionResponse.parameters?.question || "Untitled Question";
                 }
               }
               const value = JSON.stringify({
@@ -80,7 +80,7 @@ function Filters({
           );
           let questionText;
           if (questionResponse) {
-            questionText = questionResponse.parameters.question;
+            questionText = questionResponse.parameters?.question || "Untitled Question";
           }
           return (
             <div className="flex items-center w-[250px] relative top-2">

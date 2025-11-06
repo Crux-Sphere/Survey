@@ -156,7 +156,8 @@ function Page() {
                 }`}
               >
                 <VscThreeBars />
-                <div>Question: {question.parameters.question || "Untitled Question"}</div>
+                <div>Question: {question.parameters?.question || question.question || "Untitled Question"}</div>
+                <div className="text-sm text-gray-500">Type: {question.type || question.question_type || "Unknown"}</div>
               </li>
             ))}
           </ul>

@@ -39,11 +39,13 @@ const generateOTPWithExpiry = (expiryMinutes = 10) => {
 };
 
 const downloadExcel = async (data, res, req) => {
-  const ExcelJS = require("exceljs");
-  const workbook = new ExcelJS.Workbook();
-  const worksheet = workbook.addWorksheet("Survey Responses");
+  try {
+    console.log("Starting Excel download with data length:", data.length);
+    const ExcelJS = require("exceljs");
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Survey Responses");
 
-  let fileName = "Responses";
+    let fileName = "Responses";
   const baseHeaders = [
     { header: "S_no", key: "serial_no", width: 8 },
     { header: "Panna Pramukh", key: "panna_pramukh", width: 20 },
@@ -73,18 +75,34 @@ const downloadExcel = async (data, res, req) => {
 
   // --- Build question map from survey definition ---
   const questionMap = new Map(); // question => { type, subQuestions }
+  
+  // Define grid types that need special handling
+  const gridTypes = [
+    "Radio Grid", 
+    "DropDown Grid", 
+    "Single line Text Grid", 
+    "Number Grid", 
+    "Checkbox Grid",
+    "DropDown With Other Grid",
+    "Decimal Grid",
+    "Radio Grid With Other",
+    "Checkbox Grid With Other",
+    "Number Point Grid"
+  ];
 
   // First, build from actual responses (this was working before)
   data.forEach((item) => {
     item.responses.forEach((resp) => {
       if (!questionMap.has(resp.question)) {
-        if (resp.question_type === "Radio Grid") {
-          const subQs = resp.response
-            .split("\n")
-            .map((line) => line.split(":")[0]?.trim())
-            .filter(Boolean);
+        if (gridTypes.includes(resp.question_type)) {
+          const subQs = (resp.response && typeof resp.response === 'string') 
+            ? resp.response
+              .split("\n")
+              .map((line) => line.split(":")[0]?.trim())
+              .filter(Boolean)
+            : [];
           questionMap.set(resp.question, {
-            type: "Radio Grid",
+            type: resp.question_type,
             subQuestions: [...new Set(subQs)],
           });
         } else {
@@ -93,19 +111,21 @@ const downloadExcel = async (data, res, req) => {
             subQuestions: [],
           });
         }
-      } else if (resp.question_type === "Radio Grid") {
+      } else if (gridTypes.includes(resp.question_type)) {
         // Add any new sub-questions we encounter
         const existingData = questionMap.get(resp.question);
-        const newSubQs = resp.response
-          .split("\n")
-          .map((line) => line.split(":")[0]?.trim())
-          .filter(Boolean);
+        const newSubQs = (resp.response && typeof resp.response === 'string')
+          ? resp.response
+            .split("\n")
+            .map((line) => line.split(":")[0]?.trim())
+            .filter(Boolean)
+          : [];
 
         const combinedSubQs = [
           ...new Set([...existingData.subQuestions, ...newSubQs]),
         ];
         questionMap.set(resp.question, {
-          type: "Radio Grid",
+          type: resp.question_type,
           subQuestions: combinedSubQs,
         });
       }
@@ -114,19 +134,32 @@ const downloadExcel = async (data, res, req) => {
 
   // Then, enhance with survey definition for any missing questions or Radio Grid rows
   if (data.length > 0 && data[0].survey_id && data[0].survey_id.questions) {
+    console.log("Processing survey questions for Excel generation");
     data[0].survey_id.questions.forEach((question) => {
+      if (question.question_type === "Radio Grid" && question.parameters) {
+        console.log("Radio Grid question found:", question.question, "Parameters:", typeof question.parameters.row_options, question.parameters.row_options);
+      }
       if (!questionMap.has(question.question)) {
         // Question not in responses at all, add it
-        if (question.question_type === "Radio Grid") {
+        if (gridTypes.includes(question.question_type)) {
           let subQs = [];
           if (question.parameters && question.parameters.row_options) {
-            subQs = question.parameters.row_options
-              .split("\n")
-              .map((row) => row.trim())
-              .filter(Boolean);
+            if (typeof question.parameters.row_options === 'string') {
+              subQs = question.parameters.row_options
+                .split("\n")
+                .map((row) => row.trim())
+                .filter(Boolean);
+            } else if (Array.isArray(question.parameters.row_options)) {
+              // Handle case where row_options is already an array
+              subQs = question.parameters.row_options
+                .map((row) => String(row).trim())
+                .filter(Boolean);
+            } else {
+              console.warn("Unexpected row_options type:", typeof question.parameters.row_options, question.parameters.row_options);
+            }
           }
           questionMap.set(question.question, {
-            type: "Radio Grid",
+            type: question.question_type,
             subQuestions: subQs,
           });
         } else {
@@ -135,13 +168,23 @@ const downloadExcel = async (data, res, req) => {
             subQuestions: [],
           });
         }
-      } else if (question.question_type === "Radio Grid") {
+      } else if (gridTypes.includes(question.question_type)) {
         // Radio Grid exists, but ensure we have all sub-questions from definition
+        let definitionSubQs = [];
         if (question.parameters && question.parameters.row_options) {
-          const definitionSubQs = question.parameters.row_options
-            .split("\n")
-            .map((row) => row.trim())
-            .filter(Boolean);
+          if (typeof question.parameters.row_options === 'string') {
+            definitionSubQs = question.parameters.row_options
+              .split("\n")
+              .map((row) => row.trim())
+              .filter(Boolean);
+          } else if (Array.isArray(question.parameters.row_options)) {
+            definitionSubQs = question.parameters.row_options
+              .map((row) => String(row).trim())
+              .filter(Boolean);
+          }
+        }
+        
+        if (definitionSubQs.length > 0) {
 
           const existingData = questionMap.get(question.question);
           const combinedSubQs = [
@@ -178,7 +221,7 @@ const downloadExcel = async (data, res, req) => {
   let qIndex = 0;
 
   for (const [question, info] of questionMap.entries()) {
-    if (info.type === "Radio Grid") {
+    if (gridTypes.includes(info.type) && info.subQuestions.length > 0) {
       const color = radioGridColors[colorIndex % radioGridColors.length];
       colorIndex++;
 
@@ -216,7 +259,7 @@ const downloadExcel = async (data, res, req) => {
   // --- Merge and manually assign header row 1 text ---
   let colIdx = baseHeaders.length + 1;
   for (const [question, info] of questionMap.entries()) {
-    const span = info.type === "Radio Grid" ? info.subQuestions.length : 1;
+    const span = (gridTypes.includes(info.type) && info.subQuestions.length > 0) ? info.subQuestions.length : 1;
     if (span > 1) {
       worksheet.mergeCells(1, colIdx, 1, colIdx + span - 1);
     } else {
@@ -346,17 +389,22 @@ const downloadExcel = async (data, res, req) => {
     const responseData = {};
 
     item.responses.forEach((resp) => {
-      if (resp.question_type === "Radio Grid") {
-        const lines = resp.response.split("\n");
-        lines.forEach((line) => {
-          const [sub, val] = line.split(":").map((s) => s.trim());
-          if (sub) {
-            const key = [...questionKeyToLabelMap.entries()].find(
-              ([k, v]) => v.main === resp.question && v.sub === sub
-            )?.[0];
-            if (key) responseData[key] = val || "No Response";
-          }
-        });
+      if (gridTypes.includes(resp.question_type)) {
+        if (resp.response && typeof resp.response === 'string') {
+          const lines = resp.response.split("\n");
+          lines.forEach((line) => {
+            const [sub, val] = line.split(":").map((s) => s.trim());
+            if (sub) {
+              const key = [...questionKeyToLabelMap.entries()].find(
+                ([k, v]) => v.main === resp.question && v.sub === sub
+              )?.[0];
+              if (key) responseData[key] = val || "No Response";
+            }
+          });
+        } else {
+          // Handle case where Grid response is not a string
+          responseData[resp.question] = "No Response";
+        }
       } else {
         responseData[resp.question] = resp.response || "No Response";
       }
@@ -373,6 +421,16 @@ const downloadExcel = async (data, res, req) => {
   res.setHeader("Content-Disposition", `attachment; filename=${fileName}.xlsx`);
   await workbook.xlsx.write(res);
   res.end();
+  
+  } catch (error) {
+    console.error("Error in downloadExcel:", error);
+    if (!res.headersSent) {
+      res.status(500).json({ 
+        success: false, 
+        message: "Error generating Excel file: " + error.message 
+      });
+    }
+  }
 };
 
 const downloadDailyWorkExcel = async (data, res, req) => {

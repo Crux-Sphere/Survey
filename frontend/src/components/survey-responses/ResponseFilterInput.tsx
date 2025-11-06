@@ -39,8 +39,8 @@ function ResponseFilterInput({
   }
 
   if (qType && ["Radio Grid","Number Grid","DropDown Grid","Single line Text Grid","Checkbox Grid"].includes(qType)) {
-    const row = questions.parameters.row_options.split("\n");
-    const column = questions.parameters.column_options.split("\n");
+    const row = questions.parameters?.row_options?.split("\n") || [];
+    const column = questions.parameters?.column_options?.split("\n") || [];
     const result = row.flatMap((row: string) =>
       column.map((col: string) => {
         if (qType === "Radio Grid") return `${row}: ${col}`;

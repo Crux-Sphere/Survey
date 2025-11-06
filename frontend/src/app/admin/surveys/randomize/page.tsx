@@ -57,7 +57,7 @@ function Page() {
   return (
     <main className="relative h-full flex flex-col">
       {/* Display Question Header */}
-      <QuestionHeader id={id || ""} created_by={created_by || ""} name="Resequence" surveyName={surveyName || ""} />
+      <QuestionHeader id={id || ""} created_by={created_by || ""} name="Randomization" surveyName={surveyName || ""} />
       
       {/* Display Survey Questions with drag-and-drop reordering */}
       <div className="flex-grow">
@@ -74,7 +74,10 @@ function Page() {
                   checked={question.randomize} // Show current state of randomize field
                   onChange={handleCheckboxChange(index)} // Handle change event for checkbox
                 />
-                <div>Question: {question.parameters.question || "Untitled Question"}</div>
+                <div>
+                  <div>Question: {question.parameters?.question || question.question || "Untitled Question"}</div>
+                  <div className="text-sm text-gray-500">Type: {question.type || question.question_type || "Unknown"}</div>
+                </div>
               </label>
             ))}
           </ul>
