@@ -123,7 +123,7 @@ function Page() {
         </div>
       </div>
 
-      <AllSurveys updated={updated} setQueryParams={(params:any)=>setQueryParams((prev)=>({...prev,...params}))} queryParams={queryParams} />
+      <AllSurveys updated={updated} setQueryParams={(params:any)=>setQueryParams((prev)=>({...prev,...params}))} queryParams={queryParams} searchBarInput={searchBarInput} />
 
     </section>
   );
