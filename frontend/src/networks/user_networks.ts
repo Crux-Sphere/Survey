@@ -19,6 +19,7 @@ import {
   assign_booth,
   import_karyakartas,
   karyakarta_dashboard,
+  get_assigned_booths_by_survey_ac,
 } from "@/utils/constants";
 import axios from "axios";
 
@@ -188,6 +189,20 @@ export const assignBooth = async (params: any) => {
     };
     const response = await axios.request(options);
     console.log(response);
+    return response.data;
+  } catch (error) {
+    return { success: false, message: "Something Went Wrong", error };
+  }
+};
+
+export const getAssignedBoothsBySurveyAc = async (params: { survey_id: string; ac_no: string }) => {
+  try {
+    const options = {
+      method: "GET",
+      url: `${SERVER_URI}/${get_assigned_booths_by_survey_ac}`,
+      params,
+    };
+    const response = await axios.request(options);
     return response.data;
   } catch (error) {
     return { success: false, message: "Something Went Wrong", error };

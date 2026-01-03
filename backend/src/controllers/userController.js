@@ -159,14 +159,13 @@ exports.assignBoothToUsers = async (req, res) => {
       );
 
       if (existingAcIndex !== -1) {
-        // If AC already exists for the survey, update its booth numbers
+        // If AC already exists for the survey, REPLACE its booth numbers (not merge)
         console.log("existing ac no found");
         const existingAc = updatedAcList[existingAcIndex];
         console.log("existing booth numbers --->", existingAc.booth_numbers);
         console.log("new booth numbers --->", newAc.booth_numbers);
-        existingAc.booth_numbers = [
-          ...new Set([...existingAc.booth_numbers, ...newAc.booth_numbers]),
-        ];
+        // Replace old booths with new booths
+        existingAc.booth_numbers = newAc.booth_numbers;
         console.log(
           "updated ac list booth numbers--->",
           existingAc.booth_numbers,
@@ -227,6 +226,51 @@ exports.getAssignedAcBooths = async (req, res) => {
   } catch (error) {
     console.error("Error fetching assigned ACs and booths:", error);
     return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+exports.getAssignedBoothsBySurveyAc = async (req, res) => {
+  const { survey_id, ac_no } = req.query;
+  console.log("getAssignedBoothsBySurveyAc called with:", { survey_id, ac_no });
+
+  try {
+    if (!survey_id || !ac_no) {
+      return res.status(400).json({ 
+        success: false, 
+        error: "survey_id and ac_no are required" 
+      });
+    }
+
+    // Find all users who have this survey and AC assigned
+    const users = await User.find({
+      "ac_list.survey_id": survey_id,
+      "ac_list.ac_no": ac_no,
+    });
+
+    console.log(`Found ${users.length} users with AC ${ac_no} for survey ${survey_id}`);
+
+    // Collect all assigned booths with user info
+    const assignedBooths = [];
+    users.forEach((user) => {
+      const acEntries = user.ac_list.filter(
+        (ac) => ac.survey_id.toString() === survey_id && ac.ac_no === ac_no
+      );
+      acEntries.forEach((ac) => {
+        ac.booth_numbers.forEach((booth) => {
+          assignedBooths.push({
+            booth_no: booth,
+            user_id: user._id,
+            user_name: user.name,
+          });
+        });
+      });
+    });
+
+    console.log(`Total assigned booths: ${assignedBooths.length}`);
+    return res.status(200).json({ success: true, assignedBooths });
+  } catch (error) {
+    console.error("Error fetching assigned booths by survey and AC:", error);
+    return res.status(500).json({ success: false, error: "Internal server error" });
   }
 };
 

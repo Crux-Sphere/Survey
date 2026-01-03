@@ -24,6 +24,7 @@ router.post("/uploadProfilePicture", userController.uploadProfilePicture);
 router.get("/getSupervisorCollectors", userController.getSupervisorCollectors);
 router.post("/assignBooth", userController.assignBoothToUsers);
 router.get("/getAssignedBooth", userController.getAssignedAcBooths);
+router.get("/getAssignedBoothsBySurveyAc", userController.getAssignedBoothsBySurveyAc);
 
 // karyakarta
 router.post(

@@ -10,7 +10,7 @@ import {
   getSurveyResponses,
 } from "@/networks/response_networks";
 import { useSearchParams } from "next/navigation";
-import { getAllUsers, getPannaPramukhByAcList } from "@/networks/user_networks";
+import { getAllUsers, getPannaPramukhByAcList, getAssignedBoothsBySurveyAc } from "@/networks/user_networks";
 
 import { useRouter } from "next/navigation"; // For routing
 import toast from "react-hot-toast";
@@ -70,6 +70,11 @@ function Page() {
 
   const [acFilters, setAcFilters] = useState<string[]>([]);
   const [boothFilters, setBoothFilters] = useState<string[]>([]);
+  const [userAssignedBooths, setUserAssignedBooths] = useState<string[]>([]);
+  const [availableBooths, setAvailableBooths] = useState<any[]>([]);
+  const [userAssignedAcs, setUserAssignedAcs] = useState<string[]>([]);
+  const [autoSelectionDone, setAutoSelectionDone] = useState<boolean>(false);
+  const [fullUserData, setFullUserData] = useState<any>(null);
 
   //  pagination
   const [totalResponsePages, setTotalResponsePages] = useState<number>(1);
@@ -93,15 +98,108 @@ function Page() {
     getQuestions();
     if (userData) {
       getUserResponses();
+      fetchCurrentUserFullData(); // Fetch full user data with ac_list
     }
     getUsers();
   }, [reset, page, pageLimit, userData, acFilters, boothFilters]);
+
+  // Fetch current user's complete data including ac_list
+  async function fetchCurrentUserFullData() {
+    if (!userData || !userData.id) return;
+    try {
+      const response = await getAllUsers({ selectedRole: qualityCheckId });
+      if (response.success && response.data) {
+        const currentUser = response.data.find((user: any) => user._id === userData.id);
+        if (currentUser) {
+          console.log("✅ Full user data fetched:", currentUser);
+          console.log("✅ User's ac_list:", currentUser.ac_list);
+          setFullUserData(currentUser);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching full user data:", error);
+    }
+  }
 
   useEffect(() => {
     if (acList.length > 0) {
       handleGetPannaPramukh();
     }
   }, [userSearch, acList]);
+
+  // Auto-select user's assigned AC and fetch their booths
+  useEffect(() => {
+    if (fullUserData && acList.length > 0 && surveyId && !autoSelectionDone) {
+      // Add a small delay to ensure everything is ready
+      setTimeout(() => {
+      
+        
+        // Find user's assigned ACs for this survey
+        const userAcList = fullUserData.ac_list || [];
+        
+        const assignedForThisSurvey = userAcList.filter((ac: any) => {
+          const acSurveyId =
+            typeof ac.survey_id === "string"
+              ? ac.survey_id
+              : ac.survey_id?.toString();
+          console.log(`Comparing ac.survey_id "${acSurveyId}" with surveyId "${surveyId}" = ${acSurveyId === surveyId}`);
+          return acSurveyId === surveyId;
+        });
+
+
+        if (assignedForThisSurvey.length > 0) {
+          // Get AC numbers assigned to user
+          const assignedAcs = assignedForThisSurvey.map((ac: any) => ac.ac_no);
+        
+          
+          setUserAssignedAcs(assignedAcs);
+          // Auto-select the ACs - FORCE UPDATE
+          setAcFilters(assignedAcs);
+          console.log("✅ acFilters FORCEFULLY set to:", assignedAcs);
+          setAutoSelectionDone(true);
+
+          // Fetch assigned booths for the first AC
+          if (assignedAcs.length > 0) {
+            fetchUserAssignedBooths(assignedAcs[0]);
+          }
+        } else {
+          console.log("❌ No ACs assigned to this user for this survey");
+          console.log("Please check if fullUserData.ac_list has correct survey_id");
+        }
+      }, 300); // 300ms delay to ensure everything is rendered
+    }
+  }, [fullUserData, acList, surveyId, autoSelectionDone]);
+
+  // Fetch assigned booths whenever AC filter changes
+  useEffect(() => {
+    if (acFilters.length > 0 && surveyId) {
+      fetchUserAssignedBooths(acFilters[0]);
+    }
+  }, [acFilters]);
+
+  // Function to fetch assigned booths for selected AC
+  async function fetchUserAssignedBooths(ac_no: string) {
+    if (!surveyId || !fullUserData) return;
+
+    try {
+      const response = await getAssignedBoothsBySurveyAc({
+        survey_id: surveyId,
+        ac_no: ac_no,
+      });
+
+      if (response.success && response.assignedBooths) {
+        // Filter to get only current user's booths
+        const currentUserBooths = response.assignedBooths
+          .filter((booth: any) => booth.user_id === fullUserData._id)
+          .map((booth: any) => booth.booth_no);
+
+        setUserAssignedBooths(currentUserBooths);
+        setAvailableBooths(response.assignedBooths);
+      }
+    } catch (error) {
+      console.error("Error fetching assigned booths:", error);
+    }
+  }
 
   async function getUserResponses() {
     let nStartDate, nEndDate;
@@ -481,17 +579,35 @@ function Page() {
                 {acList && acList.length > 0 && (
                   <div className="mt-2">
                     <label className="block text-xs mb-1">AC Filter</label>
+                    {(() => {
+                      console.log("=== RENDERING AC FILTER ===");
+                      console.log("acFilters:", acFilters);
+                      console.log("userAssignedAcs:", userAssignedAcs);
+                      const selectValue = acFilters.map((ac) => ({ value: ac, label: `AC ${ac}` }));
+                      console.log("Select value:", selectValue);
+                      return null;
+                    })()}
                     <Select2
                       isMulti
-                      options={acList.map((ac: any) => ({
-                        value: ac.ac_no,
-                        label: ac.ac_no,
-                      }))}
-                      value={acFilters.map((ac) => ({ value: ac, label: ac }))}
+                      options={
+                        userAssignedAcs.length > 0
+                          ? // Show only user's assigned ACs
+                            userAssignedAcs.map((ac) => ({
+                              value: ac,
+                              label: `AC ${ac}`,
+                            }))
+                          : // Fallback to all ACs if no user assignments
+                            acList.map((ac: any) => ({
+                              value: ac.ac_no,
+                              label: `AC ${ac.ac_no}`,
+                            }))
+                      }
+                      value={acFilters.map((ac) => ({ value: ac, label: `AC ${ac}` }))}
                       onChange={(selected) => {
                         const values = (selected as any[]).map(
                           (item) => item.value
                         );
+                        console.log("AC changed to:", values);
                         setAcFilters(values);
                       }}
                       styles={{
@@ -512,17 +628,23 @@ function Page() {
                     <Select2
                       isMulti
                       options={
-                        // If you have booth list per AC, replace acList with booth list
-                        acList.flatMap((ac: any) =>
-                          (ac.booth_numbers || []).map((booth: any) => ({
-                            value: booth,
-                            label: booth,
-                          }))
-                        )
+                        // Show only booths assigned to the logged-in user
+                        userAssignedBooths.length > 0
+                          ? userAssignedBooths.map((booth: any) => ({
+                              value: booth,
+                              label: `Booth ${booth}`,
+                            }))
+                          : // Fallback to all booths if no user assignments
+                            acList.flatMap((ac: any) =>
+                              (ac.booth_numbers || []).map((booth: any) => ({
+                                value: booth,
+                                label: `Booth ${booth}`,
+                              }))
+                            )
                       }
                       value={boothFilters.map((booth) => ({
                         value: booth,
-                        label: booth,
+                        label: `Booth ${booth}`,
                       }))}
                       onChange={(selected) => {
                         const values = (selected as any[]).map(
@@ -554,6 +676,7 @@ function Page() {
                     setReset(!reset);
                     setAcFilters([]);
                     setBoothFilters([]);
+                    setAutoSelectionDone(false); // Allow auto-selection to run again
                   }}
                   className="btn-custom bg-gray-800 flex items-center justify-center !text-[13px] !rounded-md !text-white !h-[40px]"
                 >

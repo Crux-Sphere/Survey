@@ -16,7 +16,6 @@ interface Params {
   sortOrder: string;
   published?: string;
   created_by: string;
-  filter: string;
 }
 
 const defaultParams: Params = {
@@ -26,7 +25,6 @@ const defaultParams: Params = {
   sortOrder: "desc",
   published: "all",
   created_by: "rohitchand490@gmail.com",
-  filter: "",
 };
 
 function Page() {
@@ -35,6 +33,7 @@ function Page() {
   const [published, setPublished] = useState("all");
   const [sortSelect, setSortSelect] = useState("dateDesc");
   const [updated, setUpdatd] = useState(false);
+  const [pageBeforeSearch, setPageBeforeSearch] = useState(1);
 
   const handleChangeFilterBy = (event: SelectChangeEvent) => {
     setPublished(event.target.value as string);
@@ -54,7 +53,6 @@ function Page() {
   const handleApplyFilters = () => {
     setQueryParams((prev) => ({
       ...prev,
-      filter: searchBarInput,
       published: published,
       sortBy: sortSelect.includes("name") ? "name" : "createdAt",
       sortOrder: sortSelect.includes("Asc") ? "asc" : "desc",
@@ -72,6 +70,7 @@ function Page() {
   return (
     <section className=" bg-[#ECF0FA] min-h-[calc(100vh-80px)] w-full flex flex-col px-8">
       {!isSurveyManager && <SurveyHeader setUpdated={setUpdatd} />}
+     
 
       <div className="p-3 text-sm text-my-gray-200 bg-white  rounded-md shadow-md my-2">
         <div className="flex gap-10 justify-between items-center">
@@ -79,7 +78,21 @@ function Page() {
             className="w-[387px] formInput "
             placeholder="Search Surveys here"
             value={searchBarInput}
-            onChange={(e) => setSearchBarInput(e.target.value)}
+            onChange={(e) => {
+              const value = e.target.value;
+              
+              // If user starts typing for the first time, save current page and fetch all data
+              if (value.trim() && !searchBarInput.trim()) {
+                setPageBeforeSearch(queryParams.page);
+                setQueryParams((prev) => ({ ...prev, page: 1, limit: 1000 }));
+              }
+              // If user clears search, restore the page they were on
+              else if (!value.trim() && searchBarInput.trim()) {
+                setQueryParams((prev) => ({ ...prev, page: pageBeforeSearch, limit: 10 }));
+              }
+              
+              setSearchBarInput(value);
+            }}
           />
           <div className="flex items-center gap-4">
             <div className="flex  h-10 items-center space-x-1 text-secondary-300 font-[500] text-[14px] whitespace-nowrap">
@@ -147,6 +160,7 @@ function Page() {
           setQueryParams((prev) => ({ ...prev, ...params }))
         }
         queryParams={queryParams}
+        searchBarInput={searchBarInput}
       />
     </section>
   );

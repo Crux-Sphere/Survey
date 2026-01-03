@@ -34,6 +34,7 @@ interface AllSurveysProps {
   queryParams: Params;
   setQueryParams: (params: any) => void;
   updated: boolean;
+  searchBarInput: string;
 }
 interface Params {
   page: number;
@@ -42,12 +43,14 @@ interface Params {
   sortOrder: string;
   published?: string;
   created_by: string;
-  filter: string;
 }
 
-function AllSurveys({ queryParams, setQueryParams, updated }: AllSurveysProps) {
+function AllSurveys({ queryParams, setQueryParams, updated, searchBarInput }: AllSurveysProps) {
   const [allSurveys, setAllSurveys] = useState<any>([]);
+  const [filteredSurveys, setFilteredSurveys] = useState<any>([]);
+  const [paginatedSurveys, setPaginatedSurveys] = useState<any>([]);
   const [loading, setLoading] = useState<boolean>(false);
+  const [searching, setSearching] = useState<boolean>(false);
   const [activeDropdown, setActiveDropdown] = useState<number | null>(null);
   const [deleteModal, setDeleteModal] = useState<boolean>(false);
   const [surveyToDelete, setSurveyToDelete] = useState<string | null>(null);
@@ -60,6 +63,8 @@ function AllSurveys({ queryParams, setQueryParams, updated }: AllSurveysProps) {
   );
   const [publishModal, setPublishModal] = useState<boolean>(false);
   const [totalPages, setTotalPages] = useState<number>(1);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [currentLimit, setCurrentLimit] = useState<number>(10);
   const [users, setUsers] = useState<any[]>([]);
   const [assignModal, setAssignModal] = useState<boolean>(false);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
@@ -81,6 +86,67 @@ function AllSurveys({ queryParams, setQueryParams, updated }: AllSurveysProps) {
   useEffect(() => {
     handleGetAllSurveys();
   }, [queryParams, updated]);
+  
+  useEffect(() => {
+    // If search box is empty, immediately clear search state
+    if (!searchBarInput || !searchBarInput.trim()) {
+      setSearching(false);
+      setFilteredSurveys(allSurveys);
+      return;
+    }
+    
+    if (!allSurveys || allSurveys.length === 0) {
+      setFilteredSurveys([]);
+      setSearching(false);
+      return;
+    }
+    
+    // Debounce: wait for user to stop typing
+    const debounceTimer = setTimeout(() => {
+      // Perform search immediately without extra loader
+      const searchLower = searchBarInput.toLowerCase().trim().replace(/\s+/g, ' ');
+      
+      const filtered = allSurveys.filter((survey: any) => {
+        const surveyName = (survey.name?.toLowerCase() || "").replace(/\s+/g, ' ');
+        const surveyId = (survey.survey_id?.toString().toLowerCase() || "").replace(/\s+/g, ' ');
+        const createdDate = (formatDate(survey.createdAt)?.toLowerCase() || "").replace(/\s+/g, ' ');
+        
+        return (
+          surveyName.includes(searchLower) ||
+          surveyId.includes(searchLower) ||
+          createdDate.includes(searchLower)
+        );
+      });
+      
+      // Update results immediately
+      setFilteredSurveys(filtered);
+      setCurrentPage(1);
+    }, 400);
+    
+    return () => clearTimeout(debounceTimer);
+  }, [searchBarInput, allSurveys]);
+
+  // Frontend pagination for filtered results
+  useEffect(() => {
+    if (!filteredSurveys || filteredSurveys.length === 0) {
+      setPaginatedSurveys([]);
+      setTotalPages(0);
+      return;
+    }
+
+    // If searching (limit is 1000), use frontend pagination
+    if (searchBarInput && searchBarInput.trim()) {
+      const startIndex = (currentPage - 1) * currentLimit;
+      const endIndex = startIndex + currentLimit;
+      const paginated = filteredSurveys.slice(startIndex, endIndex);
+      setPaginatedSurveys(paginated);
+      setTotalPages(Math.ceil(filteredSurveys.length / currentLimit));
+    } else {
+      // Not searching, use backend pagination
+      setPaginatedSurveys(filteredSurveys);
+    }
+  }, [filteredSurveys, currentPage, currentLimit, searchBarInput]);
+  
   useEffect(() => {
     const token = checkToken();
     if (token) {
@@ -160,6 +226,7 @@ function AllSurveys({ queryParams, setQueryParams, updated }: AllSurveysProps) {
     const response = await getAllSurveys(params);
     // console.log("all surveys are --->", response);
     setAllSurveys(response.surveys);
+    setFilteredSurveys(response.surveys);
     setTotalPages(response.totalPages);
     setLoading(false);
   }
@@ -191,22 +258,46 @@ function AllSurveys({ queryParams, setQueryParams, updated }: AllSurveysProps) {
 
   const handleLimitChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newLimit = parseInt(e.target.value, 10);
-    setQueryParams({
-      ...queryParams,
-      limit: newLimit,
-      page: 1, // Reset to the first page on limit change
-    });
+    
+    if (searchBarInput && searchBarInput.trim()) {
+      // If searching, use frontend pagination
+      setCurrentLimit(newLimit);
+      setCurrentPage(1);
+    } else {
+      // If not searching, use backend pagination
+      setQueryParams({
+        ...queryParams,
+        limit: newLimit,
+        page: 1,
+      });
+    }
   };
 
   const handleNextPage = () => {
-    if (queryParams.page < totalPages) {
-      setQueryParams({ ...queryParams, page: queryParams.page + 1 });
+    if (searchBarInput && searchBarInput.trim()) {
+      // Frontend pagination for search results
+      if (currentPage < totalPages) {
+        setCurrentPage(currentPage + 1);
+      }
+    } else {
+      // Backend pagination
+      if (queryParams.page < totalPages) {
+        setQueryParams({ ...queryParams, page: queryParams.page + 1 });
+      }
     }
   };
 
   const handlePreviousPage = () => {
-    if (queryParams.page > 1) {
-      setQueryParams({ ...queryParams, page: queryParams.page - 1 });
+    if (searchBarInput && searchBarInput.trim()) {
+      // Frontend pagination for search results
+      if (currentPage > 1) {
+        setCurrentPage(currentPage - 1);
+      }
+    } else {
+      // Backend pagination
+      if (queryParams.page > 1) {
+        setQueryParams({ ...queryParams, page: queryParams.page - 1 });
+      }
     }
   };
 
@@ -253,15 +344,17 @@ function AllSurveys({ queryParams, setQueryParams, updated }: AllSurveysProps) {
   return (
     <div className="w-full flex-1 flex flex-col">
       <div
-        className={`w-full mt-1 mx-auto text-sm pb-3  ${
-          isSurveyManager ? "max-h-[65vh]" : "max-h-[60vh]"
-        } `}
+        className={`w-full mt-1 mx-auto text-sm pb-3`}
       >
-        {loading && (
+        {loading && !searching && (
           <Loader className="h-[40vh] w-full flex justify-center items-center text-primary-300" />
         )}
-        <div className="card shadow-md p-4 bg-white rounded-md">
-          <div className="relative">
+        {searching && (
+          <Loader className="h-[40vh] w-full flex justify-center items-center text-primary-300" />
+        )}
+        {!loading && !searching && (
+        <div className="card shadow-md p-2 sm:p-4 bg-white rounded-md">
+          <div className="relative overflow-x-auto max-h-[50vh] overflow-y-auto">
             <table className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
               <thead className="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-700 dark:text-gray-400">
                 <tr>
@@ -285,8 +378,8 @@ function AllSurveys({ queryParams, setQueryParams, updated }: AllSurveysProps) {
               </thead>
 
               <tbody>
-                {!loading && allSurveys && allSurveys.length > 0
-                  ? allSurveys.map((el: any, index: number) => (
+                {!loading && paginatedSurveys && paginatedSurveys.length > 0
+                  ? paginatedSurveys.map((el: any, index: number) => (
                       <tr
                         key={index}
                         className="bg-white border-b dark:bg-gray-800 dark:border-gray-700"
@@ -407,15 +500,18 @@ function AllSurveys({ queryParams, setQueryParams, updated }: AllSurveysProps) {
                       </tr>
                     ))
                   : !loading &&
-                    !allSurveys && (
-                      <p className="w-full h-20 flex justify-center items-center font-semibold text-secondary-300">
-                        No surveys
-                      </p>
+                    filteredSurveys.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="w-full h-20 text-center font-semibold text-secondary-300">
+                          No surveys found
+                        </td>
+                      </tr>
                     )}
               </tbody>
             </table>
           </div>
         </div>
+        )}
 
         {/* modals */}
         <CustomModal
@@ -555,19 +651,20 @@ function AllSurveys({ queryParams, setQueryParams, updated }: AllSurveysProps) {
         </CustomModal>
         <DuplicateSurveyModal closeModal={()=>setDuplicateModal(false)} modalIsOpen={duplicateModal} survey={surveyToDuplicate} />
       </div>
-      {/* Pagination Controls */}
-      {!loading && (
-        <div className="flex gap-3 items-center pl-4 py-3 bg-[#fff] rounded-md shadow-md">
+      
+      {/* Pagination Controls - Separate Card */}
+      {!loading && !searching && (
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 items-center justify-center sm:justify-start px-2 sm:px-4 py-2 sm:py-3 bg-white rounded-md shadow-md mt-1">
           {/* Limit Select */}
-          <div>
-            <label htmlFor="limit-select" className="mr-2 text-[13px]">
+          <div className="flex items-center">
+            <label htmlFor="limit-select" className="mr-2 text-xs sm:text-[13px]">
               Show:
             </label>
             <select
               id="limit-select"
-              value={queryParams.limit}
+              value={searchBarInput && searchBarInput.trim() ? currentLimit : queryParams.limit}
               onChange={handleLimitChange}
-              className="p-2 border rounded-md  text-[13px]"
+              className="p-1 sm:p-2 border rounded-md text-xs sm:text-[13px]"
             >
               <option value={10}>10</option>
               <option value={20}>20</option>
@@ -577,21 +674,21 @@ function AllSurveys({ queryParams, setQueryParams, updated }: AllSurveysProps) {
           </div>
 
           {/* Navigation Arrows */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             <button
               onClick={handlePreviousPage}
-              disabled={queryParams.page === 1}
-              className="p-2 border rounded-md disabled:opacity-50"
+              disabled={searchBarInput && searchBarInput.trim() ? currentPage === 1 : queryParams.page === 1}
+              className="p-1 sm:p-2 border rounded-md disabled:opacity-50 text-sm"
             >
               <IoIosArrowBack />
             </button>
-            <span className=" text-[13px]">
-              Page {queryParams.page} of {totalPages}
+            <span className="text-xs sm:text-[13px] px-1 whitespace-nowrap">
+              Page {searchBarInput && searchBarInput.trim() ? currentPage : queryParams.page} of {totalPages}
             </span>
             <button
               onClick={handleNextPage}
-              disabled={queryParams.page === totalPages}
-              className="p-2 border rounded-md disabled:opacity-50"
+              disabled={searchBarInput && searchBarInput.trim() ? currentPage === totalPages : queryParams.page === totalPages}
+              className="p-1 sm:p-2 border rounded-md disabled:opacity-50 text-sm"
             >
               <IoIosArrowForward />
             </button>

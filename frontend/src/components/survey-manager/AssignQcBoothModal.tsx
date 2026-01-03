@@ -3,7 +3,7 @@ import CustomModal from "../ui/Modal";
 import Select from "react-select";
 import ButtonFilled from "../ui/buttons/ButtonFilled";
 import toast from "react-hot-toast";
-import { assignBooth, getAllUsers } from "@/networks/user_networks";
+import { assignBooth, getAllUsers, getAssignedBoothsBySurveyAc } from "@/networks/user_networks";
 import { qualityCheckId } from "@/utils/constants";
 import { getSurvey } from "@/networks/survey_networks";
 
@@ -16,6 +16,7 @@ interface Props {
 function AssignQcBoothModal({ boothModal, setBoothModal, survey_id }: Props) {
   const [users, setUsers] = useState<any[]>([]);
   const [userId, setUserId] = useState<string>("");
+  const [selectedUser, setSelectedUser] = useState<any>(null);
   const [selectedAcBooths, setSelectedAcBooths] = useState<
     { ac_no: string; booth_numbers: string[] }[]
   >([]);
@@ -23,6 +24,40 @@ function AssignQcBoothModal({ boothModal, setBoothModal, survey_id }: Props) {
     { ac_no: string; booth_numbers: string[] }[]
   >([]);
   const [loading, setLoading] = useState<boolean>(false);
+  const [assignedBoothsMap, setAssignedBoothsMap] = useState<Map<string, any[]>>(new Map());
+
+  const fetchAssignedBooths = async (ac_no: string) => {
+    if (!survey_id) return;
+    try {
+      console.log("Fetching assigned booths for:", { survey_id, ac_no });
+      const response = await getAssignedBoothsBySurveyAc({ survey_id, ac_no });
+      console.log("Assigned booths response:", response);
+      if (response.success) {
+        setAssignedBoothsMap((prev) => {
+          const newMap = new Map(prev);
+          newMap.set(ac_no, response.assignedBooths || []);
+          console.log("Updated assignedBootsMap for AC", ac_no, ":", response.assignedBooths);
+          return newMap;
+        });
+      } else {
+        console.warn("API not available or failed, booths won't be disabled:", response);
+        // Set empty array on failure so booths won't be disabled (graceful degradation)
+        setAssignedBoothsMap((prev) => {
+          const newMap = new Map(prev);
+          newMap.set(ac_no, []);
+          return newMap;
+        });
+      }
+    } catch (error) {
+      console.warn("API endpoint not available yet (404), booths won't be disabled. Deploy backend to enable this feature:", error);
+      // Set empty array on error so booths won't be disabled (graceful degradation)
+      setAssignedBoothsMap((prev) => {
+        const newMap = new Map(prev);
+        newMap.set(ac_no, []);
+        return newMap;
+      });
+    }
+  };
 
   const fetchQualityCheckUsers = async () => {
     try {
@@ -58,18 +93,32 @@ function AssignQcBoothModal({ boothModal, setBoothModal, survey_id }: Props) {
 
   const clearStates = () => {
     setUserId("");
+    setSelectedUser(null);
     setSelectedAcBooths([]);
     setUsers([]);
     setAcList([]);
     setLoading(false);
+    setAssignedBoothsMap(new Map());
   };
 
   useEffect(() => {
-    if (survey_id) {
+    if (survey_id && boothModal) {
+      // Clear previous data first
+      clearStates();
+      // Then fetch fresh data
       fetchQualityCheckUsers();
       fetchAcList();
     }
-  }, [survey_id]);
+  }, [survey_id, boothModal]);
+
+  useEffect(() => {
+    // Fetch assigned booths for all selected ACs
+    selectedAcBooths.forEach((item) => {
+      if (!assignedBoothsMap.has(item.ac_no)) {
+        fetchAssignedBooths(item.ac_no);
+      }
+    });
+  }, [selectedAcBooths]);
 
   const userOptions = users?.map((user) => ({
     value: user._id,
@@ -81,16 +130,37 @@ function AssignQcBoothModal({ boothModal, setBoothModal, survey_id }: Props) {
     label: `AC ${ac.ac_no}`,
   }));
 
-  const handleUserChange = (selectedOption: any) => {
+  const handleUserChange = async (selectedOption: any) => {
     const selectedUser = users.find((user) => user._id === selectedOption.value);
     setUserId(selectedOption?.value || "");
-    setSelectedAcBooths(selectedUser?.ac_list || []); // Initialize selected AC booths with the user's AC list
+    setSelectedUser(selectedUser || null);
+    
+    // Don't auto-load existing ACs - user should manually select AC from dropdown
+    // This prevents showing booths without AC selection
+    setSelectedAcBooths([]);
   };
 
-  const handleAcChange = (selectedAc: any) => {
+  const handleAcChange = async (selectedAc: any) => {
     const ac_no = selectedAc.value;
     if (!selectedAcBooths.some((item) => item.ac_no === ac_no)) {
-      setSelectedAcBooths([...selectedAcBooths, { ac_no, booth_numbers: [] }]);
+      // Fetch assigned booths for this AC immediately
+      await fetchAssignedBooths(ac_no);
+      
+      // Get user's existing booth assignments for this AC
+      let userExistingBooths: string[] = [];
+      if (selectedUser && selectedUser.ac_list) {
+        const userAcEntry = selectedUser.ac_list.find(
+          (ac: any) => {
+            const acSurveyId = typeof ac.survey_id === 'string' ? ac.survey_id : ac.survey_id?.toString();
+            return ac.ac_no === ac_no && acSurveyId === survey_id;
+          }
+        );
+        if (userAcEntry) {
+          userExistingBooths = userAcEntry.booth_numbers || [];
+        }
+      }
+      
+      setSelectedAcBooths([...selectedAcBooths, { ac_no, booth_numbers: userExistingBooths }]);
     }
   };
 
@@ -139,6 +209,8 @@ function AssignQcBoothModal({ boothModal, setBoothModal, survey_id }: Props) {
       const response = await assignBooth(payload);
       if (response.success) {
         toast.success("AC and Booth assigned successfully!");
+        // Refresh users list to get updated assignments
+        await fetchQualityCheckUsers();
         setBoothModal(false);
         clearStates();
       } else {
@@ -188,12 +260,22 @@ function AssignQcBoothModal({ boothModal, setBoothModal, survey_id }: Props) {
 
         {/* Booth Selector for Each AC */}
         {selectedAcBooths.map((item) => {
+          const assignedBooths = assignedBoothsMap.get(item.ac_no) || [];
+          console.log(`Rendering booths for AC ${item.ac_no}, assigned:`, assignedBooths);
           const boothOptions = acList
             .find((ac) => ac.ac_no === item.ac_no)
-            ?.booth_numbers.map((booth) => ({
-              value: booth,
-              label: `Booth ${booth}`,
-            }));
+            ?.booth_numbers.map((booth) => {
+              const assignedInfo = assignedBooths.find((ab: any) => ab.booth_no === booth);
+              const isAssignedToOther = assignedInfo && assignedInfo.user_id.toString() !== userId;
+              console.log(`Booth ${booth}: assigned to`, assignedInfo, `isDisabled:`, isAssignedToOther);
+              return {
+                value: booth,
+                label: isAssignedToOther 
+                  ? `Booth ${booth} (Assigned to ${assignedInfo.user_name})`
+                  : `Booth ${booth}`,
+                isDisabled: isAssignedToOther,
+              };
+            });
 
           return (
             <div key={item.ac_no} className="flex flex-col space-y-2 w-full">
@@ -208,6 +290,11 @@ function AssignQcBoothModal({ boothModal, setBoothModal, survey_id }: Props) {
                   Remove
                 </button>
               </div>
+              {item.booth_numbers.length > 0 && (
+                <p className="text-xs text-gray-600">
+                  Currently showing: {item.booth_numbers.length} booth(s). Updating will replace existing assignments.
+                </p>
+              )}
               <Select
                 value={item.booth_numbers.map((booth) =>
                   boothOptions?.find((option) => option.value === booth)
