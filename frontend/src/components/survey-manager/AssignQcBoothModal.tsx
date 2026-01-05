@@ -3,7 +3,7 @@ import CustomModal from "../ui/Modal";
 import Select from "react-select";
 import ButtonFilled from "../ui/buttons/ButtonFilled";
 import toast from "react-hot-toast";
-import { assignBooth, getAllUsers, getAssignedBoothsBySurveyAc } from "@/networks/user_networks";
+import { assignBooth, getAllUsers, getAssignedBoothsBySurveyAc, removeAcBooth } from "@/networks/user_networks";
 import { qualityCheckId } from "@/utils/constants";
 import { getSurvey } from "@/networks/survey_networks";
 
@@ -131,8 +131,9 @@ function AssignQcBoothModal({ boothModal, setBoothModal, survey_id }: Props) {
   }));
 
   const handleUserChange = async (selectedOption: any) => {
-    const selectedUser = users.find((user) => user._id === selectedOption.value);
-    setUserId(selectedOption?.value || "");
+    const selectedUserId = selectedOption?.value || "";
+    const selectedUser = users.find((user) => user._id === selectedUserId);
+    setUserId(selectedUserId);
     setSelectedUser(selectedUser || null);
     
     // Don't auto-load existing ACs - user should manually select AC from dropdown
@@ -174,11 +175,49 @@ function AssignQcBoothModal({ boothModal, setBoothModal, survey_id }: Props) {
     );
   };
 
-  const handleRemoveAc = (ac_no: string) => {
-    setSelectedAcBooths((prev) => prev.filter((item) => item.ac_no !== ac_no));
+  const handleRemoveAc = async (ac_no: string) => {
+    if (!userId || !survey_id) {
+      toast.error("User or Survey not selected");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Call API to remove this AC from backend
+      const payload = {
+        survey_id,
+        userId,
+        ac_no,
+      };
+      const response = await removeAcBooth(payload);
+      if (response.success) {
+        toast.success("AC removed successfully!");
+        // Remove from local state
+        setSelectedAcBooths((prev) => prev.filter((item) => item.ac_no !== ac_no));
+        // Refresh user data and update selectedUser
+        await fetchQualityCheckUsers();
+        // Fetch the updated user data to refresh selectedUser
+        const usersResponse = await getAllUsers({ selectedRole: qualityCheckId });
+        if (usersResponse.success) {
+          const updatedUser = usersResponse.data.find((user: any) => user._id === userId);
+          setSelectedUser(updatedUser || null);
+        }
+      } else {
+        toast.error("Failed to remove AC");
+      }
+    } catch (error) {
+      toast.error("An error occurred while removing AC");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleSubmit = async () => {
+  // Check if any AC has booth selections
+  const hasBoothSelections = selectedAcBooths.some(
+    (item) => item.booth_numbers.length > 0
+  );
+
+  const handleAssign = async () => {
     setLoading(true);
     if (!userId || selectedAcBooths.length === 0) {
       toast.error("Please select a user and at least one AC with booths.");
@@ -209,8 +248,6 @@ function AssignQcBoothModal({ boothModal, setBoothModal, survey_id }: Props) {
       const response = await assignBooth(payload);
       if (response.success) {
         toast.success("AC and Booth assigned successfully!");
-        // Refresh users list to get updated assignments
-        await fetchQualityCheckUsers();
         setBoothModal(false);
         clearStates();
       } else {
@@ -218,6 +255,46 @@ function AssignQcBoothModal({ boothModal, setBoothModal, survey_id }: Props) {
       }
     } catch {
       toast.error("An error occurred during assignment");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdate = async () => {
+    setLoading(true);
+    if (!userId) {
+      toast.error("Please select a user.");
+      setLoading(false);
+      return;
+    }
+
+    if (selectedAcBooths.length === 0) {
+      toast.error("No AC selected to update.");
+      setLoading(false);
+      return;
+    }
+
+    const updatedAcList = selectedAcBooths.map((item) => ({
+      ...item,
+      survey_id,
+    }));
+    const payload = {
+      survey_id,
+      userId,
+      ac_list: updatedAcList,
+    };
+
+    try {
+      const response = await assignBooth(payload);
+      if (response.success) {
+        toast.success("AC and Booth updated successfully!");
+        setBoothModal(false);
+        clearStates();
+      } else {
+        toast.error("Failed to update AC and Booth");
+      }
+    } catch {
+      toast.error("An error occurred during update");
     } finally {
       setLoading(false);
     }
@@ -312,20 +389,35 @@ function AssignQcBoothModal({ boothModal, setBoothModal, survey_id }: Props) {
           );
         })}
 
-        {/* Submit Button */}
-        <ButtonFilled
-          disabled={
-            loading ||
-            !userId || // Check if user is not selected
-            selectedAcBooths.length === 0 || // Check if no ACs are selected
-            selectedAcBooths.some((item) => item.booth_numbers.length === 0) // Check if any AC has no booths
-          }
-          loading={loading}
-          className="mt-auto disabled:bg-primary-100"
-          onClick={handleSubmit}
-        >
-          Assign
-        </ButtonFilled>
+        {/* Submit Button - Show Assign or Update based on booth selection */}
+        {hasBoothSelections ? (
+          <ButtonFilled
+            disabled={
+              loading ||
+              !userId || // Check if user is not selected
+              selectedAcBooths.length === 0 || // Check if no ACs are selected
+              selectedAcBooths.some((item) => item.booth_numbers.length === 0) // Check if any AC has no booths
+            }
+            loading={loading}
+            className="w-full bg-primary-300 hover:bg-primary-400 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 disabled:bg-gray-300 disabled:cursor-not-allowed"
+            onClick={handleAssign}
+          >
+            Assign
+          </ButtonFilled>
+        ) : (
+          <ButtonFilled
+            disabled={
+              loading ||
+              !userId || // Check if user is not selected
+              selectedAcBooths.length === 0 // Check if no ACs are selected
+            }
+            loading={loading}
+            className="w-full bg-primary-300 hover:bg-primary-400 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 disabled:bg-gray-300 disabled:cursor-not-allowed"
+            onClick={handleUpdate}
+          >
+            Update
+          </ButtonFilled>
+        )}
       </div>
     </CustomModal>
   );

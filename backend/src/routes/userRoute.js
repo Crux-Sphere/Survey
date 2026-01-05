@@ -23,6 +23,7 @@ router.post("/updateUsers", userController.updateUsers);
 router.post("/uploadProfilePicture", userController.uploadProfilePicture);
 router.get("/getSupervisorCollectors", userController.getSupervisorCollectors);
 router.post("/assignBooth", userController.assignBoothToUsers);
+router.post("/removeAcBooth", userController.removeAcBoothFromUser);
 router.get("/getAssignedBooth", userController.getAssignedAcBooths);
 router.get("/getAssignedBoothsBySurveyAc", userController.getAssignedBoothsBySurveyAc);
 

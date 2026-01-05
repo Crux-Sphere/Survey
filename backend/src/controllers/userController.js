@@ -207,6 +207,47 @@ exports.assignBoothToUsers = async (req, res) => {
   }
 };
 
+exports.removeAcBoothFromUser = async (req, res) => {
+  const { survey_id, userId, ac_no } = req.body;
+  
+
+  try {
+    // Find the user by userId
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, error: "User not found" });
+    }
+
+    // Remove the specific AC from user's ac_list
+    const updatedAcList = user.ac_list.filter(
+      (ac) => !(ac.ac_no === ac_no && ac.survey_id.toString() === survey_id)
+    );
+
+    // Check if any AC still exists for this survey
+    const surveyStillHasAcs = updatedAcList.some(
+      (ac) => ac.survey_id.toString() === survey_id
+    );
+
+    // If no more ACs for this survey, remove from assigned_survey
+    if (!surveyStillHasAcs) {
+      user.assigned_survey = user.assigned_survey.filter(
+        (sid) => sid.toString() !== survey_id
+      );
+    }
+
+    user.ac_list = updatedAcList;
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "AC removed successfully",
+    });
+  } catch (error) {
+    console.error("Error in removing AC from user:", error);
+    return res.status(500).json({ success: false, error: "Internal server error" });
+  }
+};
+
 exports.getAssignedAcBooths = async (req, res) => {
   const { userId, survey_id } = req.query;
   console.log("assifgned rtoute hitting");

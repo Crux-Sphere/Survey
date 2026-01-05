@@ -17,6 +17,7 @@ import {
   get_panna_pramukh_ac_list,
   get_supervisor_collectors,
   assign_booth,
+  remove_ac_booth,
   import_karyakartas,
   karyakarta_dashboard,
   get_assigned_booths_by_survey_ac,
@@ -185,6 +186,21 @@ export const assignBooth = async (params: any) => {
     const options = {
       method: "POST",
       url: `${SERVER_URI}/${assign_booth}`,
+      data: params,
+    };
+    const response = await axios.request(options);
+    console.log(response);
+    return response.data;
+  } catch (error) {
+    return { success: false, message: "Something Went Wrong", error };
+  }
+};
+
+export const removeAcBooth = async (params: { survey_id: string; userId: string; ac_no: string }) => {
+  try {
+    const options = {
+      method: "POST",
+      url: `${SERVER_URI}/${remove_ac_booth}`,
       data: params,
     };
     const response = await axios.request(options);

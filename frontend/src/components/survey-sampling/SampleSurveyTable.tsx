@@ -313,7 +313,7 @@ function SampleSurveyTable({ queryParams, setQueryParams, updated }: AllSurveysP
                                 setQcModal(true);
                                 setSelectedSurvey(el._id);
                               }}
-                              className="w-full col-span-2"
+                              className="w-full bg-primary-300 hover:bg-primary-400 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200"
                             >
                               Assign to quality check
                             </ButtonFilled>
