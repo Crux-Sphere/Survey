@@ -343,7 +343,14 @@ exports.updateUsers = async (req, res) => {
         updateFields.phone_number = user.phone_number;
       if (user.role !== undefined) updateFields.role = user.role;
       if (user.assigned_survey !== undefined) {
-        updateFields.$addToSet = { assigned_survey: user.assigned_survey };
+        // Check if it's an array (direct assignment) or single item (add to set)
+        if (Array.isArray(user.assigned_survey)) {
+          // Direct assignment - replace the entire array
+          updateFields.assigned_survey = user.assigned_survey;
+        } else {
+          // Single item - add to set
+          updateFields.$addToSet = { assigned_survey: user.assigned_survey };
+        }
         await storeNotification({
           userId: user.user_id,
           title: "Survey Assigned",

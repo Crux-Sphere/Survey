@@ -35,7 +35,7 @@ export default function login() {
       .then((res) => {
         if (res.success) {
           toast.success(res.message);
-          localStorage.setItem("jwt", res.token);
+          localStorage.setItem("token", res.token);
           router.push("/admin");
           console.log(res)
         } else {

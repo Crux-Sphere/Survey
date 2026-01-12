@@ -395,6 +395,7 @@ exports.getAllResponses = async (req, res) => {
       const userData = await User.findById(userId).populate("role");
       console.log("userData is --->", userData);
       let isNotCollector = false;
+      let isDataAnalyst = false;
       userData.role.forEach((role) => {
         if (
           role.name === "District President" ||
@@ -407,8 +408,33 @@ exports.getAllResponses = async (req, res) => {
           console.log("not a collector");
           isNotCollector = true;
         }
+        if (role.name === "Data Analyst") {
+          console.log("user is data analyst");
+          isDataAnalyst = true;
+        }
       });
-      if (isNotCollector) {
+      
+      if (isDataAnalyst) {
+        // Data Analyst sees only data from their assigned AC/booth combinations
+        const { ac_list } = userData;
+        if (ac_list && ac_list.length > 0) {
+          const filterCriteria = ac_list
+            .filter(acItem => acItem.survey_id.toString() === surveyId.toString())
+            .flatMap(({ ac_no, booth_numbers }) =>
+              booth_numbers.map((booth_no) => ({ ac_no, booth_no }))
+            );
+
+          if (filterCriteria.length > 0) {
+            matchStage.$or = filterCriteria;
+          } else {
+            // If no matching survey assignment, return empty results
+            matchStage._id = null;
+          }
+        } else {
+          // If no AC list assigned, return empty results
+          matchStage._id = null;
+        }
+      } else if (isNotCollector) {
         const { ac_list } = userData;
         const filterCriteria = ac_list.flatMap(({ ac_no, booth_numbers }) =>
           booth_numbers.map((booth_no) => ({ ac_no, booth_no }))
@@ -807,12 +833,36 @@ exports.getResponsesGroupedByFamily = async (req, res) => {
 
 exports.getSurveyResponses = async (req, res) => {
   try {
-    const { search, sortOrder = "desc", page = 1, limit = 10 } = req.query; // Default values for page and limit
-    console.log("route is hitting --- >");
+    const { search, sortOrder = "desc", page = 1, limit = 10, userId } = req.query; // Default values for page and limit
+    console.log("getSurveyResponses route is hitting --- >");
+    console.log("userId:", userId);
 
     const pageNumber = Math.max(1, parseInt(page, 10)); // Ensure page is at least 1
     const pageSize = Math.max(1, parseInt(limit, 10)); // Ensure limit is at least 1
     const skip = (pageNumber - 1) * pageSize;
+
+    // Check if user is Data Analyst and get assigned surveys first
+    let assignedSurveyIds = null;
+    if (userId) {
+      const userData = await User.findById(userId).populate("role");
+      console.log("User data found:", userData ? "Yes" : "No");
+      if (userData) {
+        console.log("User roles:", userData.role.map(r => r.name));
+        const isDataAnalyst = userData.role.some((role) => role.name === "Data Analyst");
+        console.log("Is Data Analyst:", isDataAnalyst);
+        console.log("Assigned surveys count:", userData.assigned_survey?.length || 0);
+        
+        if (isDataAnalyst && userData.assigned_survey && userData.assigned_survey.length > 0) {
+          // Get assigned survey IDs for filtering
+          assignedSurveyIds = userData.assigned_survey.map(id => new mongoose.Types.ObjectId(id.toString()));
+          console.log("Filtering surveys for Data Analyst:", assignedSurveyIds.length, "surveys");
+        } else if (isDataAnalyst) {
+          // Data Analyst with no assigned surveys - return empty
+          console.log("Data Analyst has no assigned surveys");
+          assignedSurveyIds = [];
+        }
+      }
+    }
 
     const pipeline = [
       {
@@ -822,6 +872,27 @@ exports.getSurveyResponses = async (req, res) => {
           latestResponseCreatedAt: { $max: "$createdAt" },
         },
       },
+    ];
+
+    // Add Data Analyst filtering BEFORE lookup to filter at survey_id level
+    if (assignedSurveyIds !== null) {
+      if (assignedSurveyIds.length === 0) {
+        // No surveys assigned, return empty result
+        pipeline.push({
+          $match: {
+            _id: null // This will match nothing
+          }
+        });
+      } else {
+        pipeline.push({
+          $match: {
+            _id: { $in: assignedSurveyIds }
+          }
+        });
+      }
+    }
+
+    pipeline.push(
       {
         $lookup: {
           from: "survey99",
@@ -848,8 +919,8 @@ exports.getSurveyResponses = async (req, res) => {
           latestResponseCreatedAt: 1,
           surveyCreatedAt: "$surveyDetails.createdAt",
         },
-      },
-    ];
+      }
+    );
 
     if (search) {
       pipeline.push({
@@ -904,7 +975,7 @@ exports.getSurveyResponses = async (req, res) => {
 
 exports.getSurveyResponseStats = async (req, res) => {
   try {
-    const { survey_id, startDate, endDate, filters } = req.query;
+    const { survey_id, startDate, endDate, filters, userId } = req.query;
     console.log("filters are -->", filters);
 
     if (!survey_id) {
@@ -915,6 +986,39 @@ exports.getSurveyResponseStats = async (req, res) => {
     const matchStage = {
       survey_id: new mongoose.Types.ObjectId(String(survey_id)),
     };
+
+    // Add Data Analyst role-based filtering
+    if (userId) {
+      const userData = await User.findById(userId).populate("role");
+      let isDataAnalyst = false;
+      
+      userData.role.forEach((role) => {
+        if (role.name === "Data Analyst") {
+          isDataAnalyst = true;
+        }
+      });
+
+      if (isDataAnalyst) {
+        const { ac_list } = userData;
+        if (ac_list && ac_list.length > 0) {
+          const filterCriteria = ac_list
+            .filter(acItem => acItem.survey_id.toString() === survey_id.toString())
+            .flatMap(({ ac_no, booth_numbers }) =>
+              booth_numbers.map((booth_no) => ({ ac_no, booth_no }))
+            );
+
+          if (filterCriteria.length > 0) {
+            matchStage.$or = filterCriteria;
+          } else {
+            // If no matching survey assignment, return empty results
+            matchStage._id = null;
+          }
+        } else {
+          // If no AC list assigned, return empty results
+          matchStage._id = null;
+        }
+      }
+    }
 
     if (startDate && endDate) {
       if (isNaN(new Date(startDate)) || isNaN(new Date(endDate))) {

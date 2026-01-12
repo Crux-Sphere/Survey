@@ -41,7 +41,7 @@ export function getDateAndMonth(timestamp: string): string {
 
 export function checkToken() {
   if (typeof window !== "undefined") {
-    const token = localStorage.getItem("jwt");
+    const token = localStorage.getItem("token");
     if (!token) {
       return null;
     } else {

@@ -10,7 +10,7 @@ import {
 import { checkToken, formatDate } from "@/utils/common_functions";
 import { useRouter } from "next/navigation";
 import { FaRegEdit, FaRegUser } from "react-icons/fa";
-import { MdDeleteOutline } from "react-icons/md";
+import { MdDeleteOutline, MdPeople } from "react-icons/md";
 import CustomModal from "../ui/Modal";
 import ButtonFilled from "../ui/buttons/ButtonFilled";
 import toast from "react-hot-toast";
@@ -67,8 +67,12 @@ function AllSurveys({ queryParams, setQueryParams, updated, searchBarInput }: Al
   const [currentLimit, setCurrentLimit] = useState<number>(10);
   const [users, setUsers] = useState<any[]>([]);
   const [assignModal, setAssignModal] = useState<boolean>(false);
+  const [assignAnalystModal, setAssignAnalystModal] = useState<boolean>(false);
+  const [analysts, setAnalysts] = useState<any[]>([]);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [deSelectedUsers, setDeSelectedUsers] = useState<string[]>([]);
+  const [selectedAnalysts, setSelectedAnalysts] = useState<string[]>([]);
+  const [deSelectedAnalysts, setDeSelectedAnalysts] = useState<string[]>([]);
   const [surveyToAssign, setSurveyToAssign] = useState<string>("");
   const [user, setUser] = useState<any>(null);
   const [userSearch, setUserSearch] = useState<string>("");
@@ -158,6 +162,15 @@ function AllSurveys({ queryParams, setQueryParams, updated, searchBarInput }: Al
     getUsers();
   }, [userSearch]);
 
+  useEffect(() => {
+    if (assignAnalystModal) {
+      getAnalysts();
+      // Reset selections when modal opens
+      setSelectedAnalysts([]);
+      setDeSelectedAnalysts([]);
+    }
+  }, [assignAnalystModal]);
+
   // Delete a survey
   async function handleDeleteSurvey() {
     const params = {
@@ -192,6 +205,22 @@ function AllSurveys({ queryParams, setQueryParams, updated, searchBarInput }: Al
       setDeSelectedUsers((prevDeSelectedUsers) =>
         prevDeSelectedUsers.filter((u) => u !== userId)
       );
+    }
+  };
+
+  const handleAnalystSelection = (analystId: string, currentlyAssigned: boolean) => {
+    if (currentlyAssigned) {
+      // Was already assigned, now unchecking - add to deselect list
+      if (!deSelectedAnalysts.includes(analystId)) {
+        setDeSelectedAnalysts((prev) => [...prev, analystId]);
+      }
+      setSelectedAnalysts((prev) => prev.filter((u) => u !== analystId));
+    } else {
+      // Was not assigned, now checking - add to select list
+      if (!selectedAnalysts.includes(analystId)) {
+        setSelectedAnalysts((prev) => [...prev, analystId]);
+      }
+      setDeSelectedAnalysts((prev) => prev.filter((u) => u !== analystId));
     }
   };
 
@@ -242,6 +271,58 @@ function AllSurveys({ queryParams, setQueryParams, updated, searchBarInput }: Al
 
     setUsers(response.data);
     setLoading(false);
+  }
+
+  async function getAnalysts() {
+    setLoading(true);
+    const params = {
+      page: 1,
+      limit: 1000
+    };
+    const response = await getAllUsers(params);
+    if (response.success && response.data) {
+      const dataAnalysts = response.data.filter((user: any) =>
+        user.role && user.role.some((role: any) => role.name === "Data Analyst")
+      );
+      setAnalysts(dataAnalysts);
+    } else {
+      setAnalysts([]);
+    }
+    setLoading(false);
+  }
+
+  async function handleAssignAnalysts() {
+    const analystUpdates = selectedAnalysts.map((analystId) => ({
+      user_id: analystId,
+      assigned_survey: surveyToAssign,
+    }));
+    const removeUpdates = deSelectedAnalysts.map((analystId) => ({
+      user_id: analystId,
+      remove_survey: surveyToAssign,
+    }));
+
+    const updates = [...analystUpdates, ...removeUpdates];
+
+    if (!updates || updates.length === 0) {
+      toast.error("Please select at least one analyst");
+      return;
+    }
+
+    const params = { users: updates };
+    setLoading(true);
+    const response = await updateMultipleUsers(params);
+    if (response.success) {
+      toast.success("Surveys assigned to analysts successfully!");
+      handleGetAllSurveys();
+      getAnalysts();
+    } else {
+      toast.error("Something went wrong");
+    }
+    setLoading(false);
+    setAssignAnalystModal(false);
+    setActiveDropdown(null);
+    setSelectedAnalysts([]);
+    setDeSelectedAnalysts([]);
   }
 
   // Toggle dropdown
@@ -483,6 +564,17 @@ function AllSurveys({ queryParams, setQueryParams, updated, searchBarInput }: Al
                                       <FaRegUser /> Assign to user
                                     </button>
                                     <button
+                                      disabled={el.published === false}
+                                      onClick={() => {
+                                        setSurveyToAssign(el._id);
+                                        setActiveDropdown(null);
+                                        setAssignAnalystModal(true);
+                                      }}
+                                      className="flex gap-2 items-center disabled:cursor-not-allowed disabled:bg-gray-100 px-4 py-2 hover:bg-gray-100 cursor-pointer w-full  text-[13px]"
+                                    >
+                                      <MdPeople /> Assign to analyst
+                                    </button>
+                                    <button
                                       onClick={() => {
                                         setActiveDropdown(null);
                                         setDeleteModal(true);
@@ -649,6 +741,62 @@ function AllSurveys({ queryParams, setQueryParams, updated, searchBarInput }: Al
             </ButtonFilled>
           </div>
         </CustomModal>
+
+        {/* Assign to Analyst Modal */}
+        <CustomModal
+          open={assignAnalystModal}
+          closeModal={() => {
+            setAssignAnalystModal(false);
+            setSelectedAnalysts([]);
+            setDeSelectedAnalysts([]);
+          }}
+        >
+          <div className="flex flex-col h-[70vh] w-[40vw] items-center gap-5 p-4">
+            <h1 className="text-xl w-full text-center">
+              Select Data Analysts to assign the survey
+            </h1>
+            <div className="grid grid-cols-2 gap-4 w-full overflow-y-auto max-h-[60vh]">
+              {analysts && analysts.length > 0 ? (
+                analysts.map(({ _id, email, name, assigned_survey }, index) => {
+                  if (user && user.id === _id) return null;
+                  const isCurrentlyAssigned = assigned_survey.includes(surveyToAssign);
+                  const isSelected = selectedAnalysts.includes(_id);
+                  const isDeselected = deSelectedAnalysts.includes(_id);
+                  
+                  // Determine checked state:
+                  // If was assigned and not in deselect list, OR newly selected, then checked
+                  const isChecked = (isCurrentlyAssigned && !isDeselected) || isSelected;
+                  
+                  return (
+                    <label
+                      key={_id}
+                      className="cursor-pointer flex items-center h-fit min-w-[50%] justify-between"
+                    >
+                      <div>
+                        {index + 1}. {name || email}
+                      </div>
+                      <input
+                        className="h-5 w-5 disabled:cursor-not-allowed"
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => handleAnalystSelection(_id, isCurrentlyAssigned)}
+                      />
+                    </label>
+                  );
+                })
+              ) : (
+                <div>No Data Analysts available</div>
+              )}
+            </div>
+            <ButtonFilled
+              onClick={handleAssignAnalysts}
+              className="whitespace-nowrap mt-auto"
+            >
+              Update Assigned Surveys
+            </ButtonFilled>
+          </div>
+        </CustomModal>
+
         <DuplicateSurveyModal closeModal={()=>setDuplicateModal(false)} modalIsOpen={duplicateModal} survey={surveyToDuplicate} />
       </div>
       

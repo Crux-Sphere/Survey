@@ -18,9 +18,13 @@ export const saveResponses = async (params: any) => {
   };
 export const getAllSurveyResponses = async (params:any) => {
     try {
+      const bearerToken = localStorage.getItem("token");
       const options = {
         method: "GET",
         url: `${SERVER_URI}/${get_all_survey_responses}`,
+        headers: {
+          Authorization: `Bearer ${bearerToken}`,
+        },
         params
       };
       const response = await axios.request(options);

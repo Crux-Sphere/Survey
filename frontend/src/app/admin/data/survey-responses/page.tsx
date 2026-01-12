@@ -35,6 +35,7 @@ import Select, { SelectChangeEvent } from "@mui/material/Select";
 import MenuItem from "@mui/material/MenuItem";
 
 function Page() {
+  const loggedInUser = useUser();
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [users, setUsers] = useState<any[]>([]);
@@ -114,11 +115,16 @@ function Page() {
       nStartDate.setDate(nStartDate.getDate() + 1);
       nEndDate.setDate(nEndDate.getDate() + 1);
     }
+    
+    // Check if user is Data Analyst
+    const isDataAnalyst = loggedInUser?.role?.some((r: any) => r.name === "Data Analyst");
+    const effectiveUserId = isDataAnalyst ? loggedInUser?.id : userId;
+    
     const params = {
       surveyId,
       startDate: nStartDate,
       endDate: nEndDate,
-      userId,
+      userId: effectiveUserId,
       filters: appliedFilters,
       limit: pageLimit,
       page,
@@ -203,11 +209,16 @@ function Page() {
         nStartDate.setDate(nStartDate.getDate() + 1);
         nEndDate.setDate(nEndDate.getDate() + 1);
       }
+      
+      // Check if user is Data Analyst
+      const isDataAnalyst = loggedInUser?.role?.some((r: any) => r.name === "Data Analyst");
+      const effectiveUserId = isDataAnalyst ? loggedInUser?.id : userId;
+      
       const params = {
         surveyId,
         startDate: nStartDate,
         endDate: nEndDate,
-        userId,
+        userId: effectiveUserId,
         filters: appliedFilters,
         download: true,
         acFilters,
@@ -328,18 +339,21 @@ function Page() {
             </div>
 
             <div className="flex gap-5 items-center pt-4">
-              {/* Selected User */}
-              <div className="flex flex-col  w-[352px]">
-                <Select2
-                  value={options.find((option) => option.value === userId)}
-                  onChange={(selectedOption) =>
-                    setUserId(selectedOption?.value || "")
-                  }
-                  options={options}
-                  placeholder="Select user"
-                  classNamePrefix="react-select"
-                  isSearchable={true} // Enables search
-                />
+              {/* Selected User - Hidden for Data Analysts */}
+              {!loggedInUser?.role?.some((r: any) => r.name === "Data Analyst") && (
+                <div className="flex flex-col  w-[352px]">
+                  <Select2
+                    value={options.find((option) => option.value === userId)}
+                    onChange={(selectedOption) =>
+                      setUserId(selectedOption?.value || "")
+                    }
+                    options={options}
+                    placeholder="Select user"
+                    classNamePrefix="react-select"
+                    isSearchable={true} // Enables search
+                  />
+                </div>
+              )}
               {/* ac filter here */}
               {/* AC MultiSelect */}
               {acList && acList.length > 0 && (
@@ -386,7 +400,6 @@ function Page() {
                   />
                 </div>
               )}
-              </div>
 
               {/* Action Buttons */}
               <div className="flex space-x-2 self-end">

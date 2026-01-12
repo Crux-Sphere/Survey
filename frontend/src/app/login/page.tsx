@@ -17,7 +17,7 @@ export default function login() {
 
   useEffect(() => {
     const checkToken = () => {
-    const token = localStorage.getItem("jwt_token");
+    const token = localStorage.getItem("token");
     if (token) {
       router.push("/admin/surveys");
     }
@@ -28,7 +28,7 @@ export default function login() {
 
   const handleSubmit = () => {
     loginUser({ email: Email, password:password }).then(  (res) => {
-      localStorage.setItem("jwt_token", res.token);
+      localStorage.setItem("token", res.token);
       if (res.success) {
         toast.success(res.message);
         router.push("/admin/surveys");

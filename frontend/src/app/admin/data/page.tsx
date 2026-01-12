@@ -15,8 +15,10 @@ import Modal from "react-modal";
 import toast from "react-hot-toast";
 import { FaUpload, FaEdit } from "react-icons/fa";
 import { updateSurvey } from "@/networks/survey_networks";
+import useUser from "@/hooks/useUser";
 
 function page() {
+  const loggedInUser = useUser();
   const [loading, setLoading] = useState<boolean>(false);
   const [data, setData] = useState<any[]>([]);
   const [searchValue, setSearchValue] = useState<string>("");
@@ -42,13 +44,32 @@ function page() {
 
   console.log(data);
   useEffect(() => {
-    getResponses();
-  }, [sortOrder, reset, page, pageLimit]);
+    if (loggedInUser) {
+      getResponses();
+    }
+  }, [sortOrder, reset, page, pageLimit, loggedInUser]);
 
   async function getResponses() {
-    const params = { search: searchValue, sortOrder, page, limit: pageLimit };
+    // Check if user is Data Analyst
+    const isDataAnalyst = loggedInUser?.role?.some((r: any) => r.name === "Data Analyst");
+    console.log("Fetching responses...");
+    console.log("Is Data Analyst:", isDataAnalyst);
+    console.log("User ID:", loggedInUser?.id);
+    
+    const params = { 
+      search: searchValue, 
+      sortOrder, 
+      page, 
+      limit: pageLimit,
+      userId: isDataAnalyst ? loggedInUser?.id : undefined
+    };
+    
+    console.log("Request params:", params);
+    
     setLoading(true);
     const response = await getAllSurveyResponses(params);
+    console.log("Response from API:", response);
+    
     if (response.success) {
       console.log("response -----", response);
       setTotalResponsePages(response.pagination.totalPages);

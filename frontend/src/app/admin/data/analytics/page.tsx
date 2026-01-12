@@ -153,6 +153,7 @@ function Page() {
     const response = await getSurveyResponseStats({
       survey_id: surveyID,
       filters: appliedFilters,
+      userId: user?.id,
     });
     console.log("response stats data--->", response.data);
     if (response.success) {

@@ -324,7 +324,7 @@ function Sidebar({ sidebarOpen, onSidebarToggle }: any) {
             <div className="hover:bg-[rgba(255,255,255,0.1)] rounded-md">
               <Button
                 onClick={() => {
-                  localStorage.removeItem("jwt");
+                  localStorage.removeItem("token");
                   router.push("/");
                 }}
                 className={`!text-[rgba(255,255,255,0.8)] !capitalize font-[500]  rounded-md !px-3 !py-[9px] flex items-center gap-3 ${
