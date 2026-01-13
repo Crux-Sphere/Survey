@@ -933,7 +933,7 @@ exports.getSurveyResponses = async (req, res) => {
     pipeline.push(
       {
         $sort: {
-          latestResponseCreatedAt: sortOrder === "asc" ? 1 : -1,
+          surveyCreatedAt: sortOrder === "asc" ? 1 : -1,
         },
       },
       {
@@ -947,6 +947,7 @@ exports.getSurveyResponses = async (req, res) => {
     const results = await Responses.aggregate(pipeline).allowDiskUse(true);
 
     // Get the total count of matching documents for calculating total pages
+
     const countPipeline = pipeline.slice(0, -2); // Remove $skip and $limit stages for count
     countPipeline.push({
       $count: "totalCount",

@@ -239,8 +239,8 @@ function page() {
                 onChange={handleSortOrder}
                 className="w-full"
               >
-                <MenuItem value={"asc"}>Date DESC</MenuItem>
-                <MenuItem value={"desc"}>Date ASC</MenuItem>
+                <MenuItem value={"desc"}>Date DESC</MenuItem>
+                <MenuItem value={"asc"}>Date ASC</MenuItem>
               </Select>
             </div>
           </div>
