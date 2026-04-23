@@ -17,6 +17,14 @@ services:
   backend:
     image: cruxsphere/survey-b:latest
     command: ["node", "server.js"]  # Explicitly set the command
+    environment:
+      - NODE_ENV=production
+      - PORT=6969
+      - MONGODB_URI=${MONGODB_URI}
+      - JWT_SECRET=${JWT_SECRET}
+      - CLIENT_URL=${CLIENT_URL}
+      - NODEMAILER_EMAIL=${NODEMAILER_EMAIL}
+      - NODEMAILER_EMAIL_PASSWORD=${NODEMAILER_EMAIL_PASSWORD}
     deploy:
       replicas: 3
     labels:

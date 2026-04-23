@@ -13,8 +13,16 @@ socketHandler(io);
 
 const PORT = process.env.PORT || 6969;
 
-connectDatabase();
+async function startServer() {
+  try {
+    await connectDatabase();
+    server.listen(PORT, () => {
+      console.log(`Server is running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error("Failed to start server:", error);
+    process.exit(1);
+  }
+}
 
-server.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+startServer();
