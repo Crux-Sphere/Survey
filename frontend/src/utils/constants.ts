@@ -3,7 +3,7 @@
 // export const SERVER_URI = "https://survey-3uf0.onrender.com";
 export const SERVER_URI = "https://backend.bharatdemographic.com"
 // export const SERVER_URI = "http://localhost:6969"
-//redeploysss
+//redeployserver
 export const SERVER_BUCKET = "https://survey-media.blr1.digitaloceanspaces.com"
 
 
