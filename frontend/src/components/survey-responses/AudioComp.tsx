@@ -153,29 +153,45 @@ export default function AudioComp({ audioUrl }: { audioUrl: string }) {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isSeeking, setIsSeeking] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const toggleAudio = () => {
+  const toggleAudio = async () => {
     const audio = audioRef.current;
     if (!audio) return;
 
     if (isPlaying) {
       audio.pause();
+      setIsPlaying(false);
     } else {
-      audio.play();
+      setIsLoading(true);
+      try {
+        await audio.play();
+        setIsPlaying(true);
+      } catch {
+        // play() was interrupted or failed
+      } finally {
+        setIsLoading(false);
+      }
     }
-
-    setIsPlaying(!isPlaying);
   };
 
   const formatTime = (time: number) => {
-    const minutes = Math.floor(time / 60)
-      .toString()
-      .padStart(1, '0');
-    const seconds = Math.floor(time % 60)
-      .toString()
-      .padStart(2, '0');
+    if (!time || isNaN(time) || !isFinite(time)) return '0:00';
+    const minutes = Math.floor(time / 60).toString();
+    const seconds = Math.floor(time % 60).toString().padStart(2, '0');
     return `${minutes}:${seconds}`;
   };
+
+  // Force metadata fetch on mount so duration shows immediately in the table
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    // Explicitly trigger loading; browsers often ignore preload="metadata" for
+    // many simultaneous elements. If duration is already known, skip the load.
+    if (!audio.duration || !isFinite(audio.duration)) {
+      audio.load();
+    }
+  }, [audioUrl]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -185,16 +201,39 @@ export default function AudioComp({ audioUrl }: { audioUrl: string }) {
       if (!isSeeking) setCurrentTime(audio.currentTime);
     };
 
-    const setAudioData = () => {
-      setDuration(audio.duration);
+    const updateDuration = () => {
+      if (audio.duration && isFinite(audio.duration)) {
+        setDuration(audio.duration);
+      }
     };
 
+    const handleEnded = () => {
+      setIsPlaying(false);
+      setCurrentTime(0);
+    };
+
+    const handleWaiting = () => setIsLoading(true);
+    const handleCanPlay = () => setIsLoading(false);
+
     audio.addEventListener('timeupdate', updateTime);
-    audio.addEventListener('loadedmetadata', setAudioData);
+    audio.addEventListener('loadedmetadata', updateDuration);
+    audio.addEventListener('durationchange', updateDuration);
+    audio.addEventListener('ended', handleEnded);
+    audio.addEventListener('waiting', handleWaiting);
+    audio.addEventListener('canplay', handleCanPlay);
+
+    // If metadata already loaded before listeners were attached (e.g. cached)
+    if (audio.readyState >= 1 && isFinite(audio.duration)) {
+      setDuration(audio.duration);
+    }
 
     return () => {
       audio.removeEventListener('timeupdate', updateTime);
-      audio.removeEventListener('loadedmetadata', setAudioData);
+      audio.removeEventListener('loadedmetadata', updateDuration);
+      audio.removeEventListener('durationchange', updateDuration);
+      audio.removeEventListener('ended', handleEnded);
+      audio.removeEventListener('waiting', handleWaiting);
+      audio.removeEventListener('canplay', handleCanPlay);
     };
   }, [isSeeking]);
 
@@ -220,12 +259,15 @@ export default function AudioComp({ audioUrl }: { audioUrl: string }) {
     >
       <audio ref={audioRef} src={audioUrl} preload="metadata" />
 
-      {/* Play / Pause button */}
+      {/* Play / Pause / Loading button */}
       <button
         onClick={toggleAudio}
-        className="text-lg p-2 bg-white rounded-full shadow hover:bg-gray-200 transition"
+        disabled={isLoading}
+        className="text-lg p-2 bg-white rounded-full shadow hover:bg-gray-200 transition min-w-[36px] flex items-center justify-center"
       >
-        {isPlaying ? '⏸' : '▶'}
+        {isLoading ? (
+          <span className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin inline-block" />
+        ) : isPlaying ? '⏸' : '▶'}
       </button>
 
       {/* Current time */}
@@ -245,7 +287,7 @@ export default function AudioComp({ audioUrl }: { audioUrl: string }) {
       />
 
       {/* Duration */}
-      <span className="text-xs font-mono w-10">{formatTime(duration)}</span>
+      <span className="text-xs font-mono w-10">{duration > 0 ? formatTime(duration) : '--:--'}</span>
 
       {/* Download button */}
       {/* <a
