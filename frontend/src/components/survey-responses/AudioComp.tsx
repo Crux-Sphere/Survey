@@ -149,6 +149,7 @@ import { FiDownload } from 'react-icons/fi';
 
 export default function AudioComp({ audioUrl }: { audioUrl: string }) {
   const audioRef = useRef<HTMLAudioElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -182,15 +183,32 @@ export default function AudioComp({ audioUrl }: { audioUrl: string }) {
     return `${minutes}:${seconds}`;
   };
 
-  // Force metadata fetch on mount so duration shows immediately in the table
+  // Only trigger audio.load() when the row is visible in the viewport.
+  // All rows calling load() simultaneously saturates the browser's connection
+  // pool (6 per domain) causing slow sequential loading.
   useEffect(() => {
     const audio = audioRef.current;
-    if (!audio) return;
-    // Explicitly trigger loading; browsers often ignore preload="metadata" for
-    // many simultaneous elements. If duration is already known, skip the load.
-    if (!audio.duration || !isFinite(audio.duration)) {
-      audio.load();
+    const container = containerRef.current;
+    if (!audio || !container) return;
+
+    // If already cached / metadata ready, set immediately and skip
+    if (audio.readyState >= 1 && isFinite(audio.duration) && audio.duration > 0) {
+      setDuration(audio.duration);
+      return;
     }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          audio.load();
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '200px' } // start loading 200px before row enters view
+    );
+
+    observer.observe(container);
+    return () => observer.disconnect();
   }, [audioUrl]);
 
   useEffect(() => {
@@ -222,11 +240,6 @@ export default function AudioComp({ audioUrl }: { audioUrl: string }) {
     audio.addEventListener('waiting', handleWaiting);
     audio.addEventListener('canplay', handleCanPlay);
 
-    // If metadata already loaded before listeners were attached (e.g. cached)
-    if (audio.readyState >= 1 && isFinite(audio.duration)) {
-      setDuration(audio.duration);
-    }
-
     return () => {
       audio.removeEventListener('timeupdate', updateTime);
       audio.removeEventListener('loadedmetadata', updateDuration);
@@ -254,6 +267,7 @@ export default function AudioComp({ audioUrl }: { audioUrl: string }) {
 
   return (
     <div
+      ref={containerRef}
       onClick={(e) => e.stopPropagation()}
       className="flex items-center gap-3 bg-gray-100 p-2 rounded-lg shadow w-full max-w-lg"
     >
