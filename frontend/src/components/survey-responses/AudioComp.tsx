@@ -147,9 +147,43 @@
 import { useEffect, useRef, useState } from 'react';
 import { FiDownload } from 'react-icons/fi';
 
+// ---------------------------------------------------------------------------
+// Module-level concurrency queue shared across ALL AudioComp instances.
+// Limits simultaneous audio metadata fetches to MAX_CONCURRENT so we never
+// saturate the browser's 6-connection-per-domain limit.
+// ---------------------------------------------------------------------------
+const MAX_CONCURRENT = 3;
+let activeLoads = 0;
+const loadQueue: Array<() => void> = [];
+
+function processQueue() {
+  while (activeLoads < MAX_CONCURRENT && loadQueue.length > 0) {
+    const task = loadQueue.shift()!;
+    activeLoads++;
+    task();
+  }
+}
+
+function enqueueLoad(task: () => void): () => void {
+  loadQueue.push(task);
+  processQueue();
+  return () => {
+    const idx = loadQueue.indexOf(task);
+    if (idx !== -1) loadQueue.splice(idx, 1);
+  };
+}
+
+function releaseSlot() {
+  activeLoads = Math.max(0, activeLoads - 1);
+  processQueue();
+}
+// ---------------------------------------------------------------------------
+
 export default function AudioComp({ audioUrl }: { audioUrl: string }) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const cancelQueueRef = useRef<(() => void) | null>(null);
+  const loadedRef = useRef(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -183,32 +217,45 @@ export default function AudioComp({ audioUrl }: { audioUrl: string }) {
     return `${minutes}:${seconds}`;
   };
 
-  // Only trigger audio.load() when the row is visible in the viewport.
-  // All rows calling load() simultaneously saturates the browser's connection
-  // pool (6 per domain) causing slow sequential loading.
   useEffect(() => {
     const audio = audioRef.current;
     const container = containerRef.current;
     if (!audio || !container) return;
 
-    // If already cached / metadata ready, set immediately and skip
     if (audio.readyState >= 1 && isFinite(audio.duration) && audio.duration > 0) {
       setDuration(audio.duration);
       return;
     }
 
+    let cancelled = false;
+
+    const triggerLoad = () => {
+      if (cancelled || loadedRef.current) {
+        releaseSlot();
+        return;
+      }
+      loadedRef.current = true;
+      audio.load();
+    };
+
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting) {
-          audio.load();
+        if (entries[0].isIntersecting && !loadedRef.current) {
           observer.disconnect();
+          cancelQueueRef.current = enqueueLoad(triggerLoad);
         }
       },
-      { rootMargin: '200px' } // start loading 200px before row enters view
+      { rootMargin: '100px' }
     );
 
     observer.observe(container);
-    return () => observer.disconnect();
+
+    return () => {
+      cancelled = true;
+      observer.disconnect();
+      cancelQueueRef.current?.();
+      cancelQueueRef.current = null;
+    };
   }, [audioUrl]);
 
   useEffect(() => {
@@ -222,6 +269,7 @@ export default function AudioComp({ audioUrl }: { audioUrl: string }) {
     const updateDuration = () => {
       if (audio.duration && isFinite(audio.duration)) {
         setDuration(audio.duration);
+        releaseSlot();
       }
     };
 
@@ -230,6 +278,7 @@ export default function AudioComp({ audioUrl }: { audioUrl: string }) {
       setCurrentTime(0);
     };
 
+    const handleError = () => releaseSlot();
     const handleWaiting = () => setIsLoading(true);
     const handleCanPlay = () => setIsLoading(false);
 
@@ -237,6 +286,7 @@ export default function AudioComp({ audioUrl }: { audioUrl: string }) {
     audio.addEventListener('loadedmetadata', updateDuration);
     audio.addEventListener('durationchange', updateDuration);
     audio.addEventListener('ended', handleEnded);
+    audio.addEventListener('error', handleError);
     audio.addEventListener('waiting', handleWaiting);
     audio.addEventListener('canplay', handleCanPlay);
 
@@ -245,6 +295,7 @@ export default function AudioComp({ audioUrl }: { audioUrl: string }) {
       audio.removeEventListener('loadedmetadata', updateDuration);
       audio.removeEventListener('durationchange', updateDuration);
       audio.removeEventListener('ended', handleEnded);
+      audio.removeEventListener('error', handleError);
       audio.removeEventListener('waiting', handleWaiting);
       audio.removeEventListener('canplay', handleCanPlay);
     };
@@ -259,9 +310,7 @@ export default function AudioComp({ audioUrl }: { audioUrl: string }) {
 
   const handleSeekEnd = () => {
     const audio = audioRef.current;
-    if (audio) {
-      audio.currentTime = currentTime;
-    }
+    if (audio) audio.currentTime = currentTime;
     setIsSeeking(false);
   };
 
@@ -271,9 +320,8 @@ export default function AudioComp({ audioUrl }: { audioUrl: string }) {
       onClick={(e) => e.stopPropagation()}
       className="flex items-center gap-3 bg-gray-100 p-2 rounded-lg shadow w-full max-w-lg"
     >
-      <audio ref={audioRef} src={audioUrl} preload="metadata" />
+      <audio ref={audioRef} src={audioUrl} preload="none" />
 
-      {/* Play / Pause / Loading button */}
       <button
         onClick={toggleAudio}
         disabled={isLoading}
@@ -284,10 +332,8 @@ export default function AudioComp({ audioUrl }: { audioUrl: string }) {
         ) : isPlaying ? '⏸' : '▶'}
       </button>
 
-      {/* Current time */}
       <span className="text-xs font-mono w-10 text-right">{formatTime(currentTime)}</span>
 
-      {/* Seek bar */}
       <input
         type="range"
         min={0}
@@ -300,27 +346,16 @@ export default function AudioComp({ audioUrl }: { audioUrl: string }) {
         className="flex-grow accent-gray-500"
       />
 
-      {/* Duration */}
       <span className="text-xs font-mono w-10">{duration > 0 ? formatTime(duration) : '--:--'}</span>
 
-      {/* Download button */}
-      {/* <a
+      <a
         href={audioUrl}
-        download
+        download="audio.mp3"
+        onClick={(e) => e.stopPropagation()}
         className="p-2 rounded-full hover:bg-gray-200 transition"
       >
         <FiDownload size={16} />
-      </a> */}
-
-      <a
-  href={audioUrl}
-  download="audio.mp3" // ✅ force download with filename
-  onClick={(e) => e.stopPropagation()}
-  className="p-2 rounded-full hover:bg-gray-200 transition"
->
-  <FiDownload size={16} />
-</a>
-
+      </a>
     </div>
   );
 }
