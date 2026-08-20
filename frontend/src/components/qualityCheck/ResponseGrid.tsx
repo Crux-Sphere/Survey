@@ -1,7 +1,7 @@
 "use client";
 
 import { truncateText, formatDate } from "@/utils/common_functions";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { FaCircleXmark } from "react-icons/fa6";
 import toast from "react-hot-toast";
 import { useSearchParams } from "next/navigation";
@@ -15,6 +15,7 @@ import CustomModal from "../ui/Modal";
 import ButtonFilled from "../ui/buttons/ButtonFilled";
 import AudioComp from "../survey-responses/AudioComp";
 import { SERVER_BUCKET } from "@/utils/constants";
+import { IoLocationOutline } from "react-icons/io5";
 
 interface ResponseTableProps {
   responses: any;
@@ -26,6 +27,7 @@ interface ResponseTableProps {
   setSelectedResponse: (response: any) => void;
   setResponseModalIsOpen: (isOpen: boolean) => void;
   setMapModalIsOpen: (isOpen: boolean) => void;
+  setCoordinates: (coords: { lat: number; lng: number }) => void;
   setMore: (questionId: string | null) => void;
   more: string | null;
   setAssignedMode: (val: boolean) => void;
@@ -38,11 +40,25 @@ interface ResponseTableProps {
   pageLimit?: number;
 }
 
+function formatLocation(locationData?: {
+  latitude?: number | string;
+  longitude?: number | string;
+}) {
+  const lat = Number(locationData?.latitude);
+  const lng = Number(locationData?.longitude);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || (lat === 0 && lng === 0)) {
+    return "--";
+  }
+  return `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+}
+
 function ResponseGrid({
   responses,
   users,
   setSelectedResponse,
   setResponseModalIsOpen,
+  setMapModalIsOpen,
+  setCoordinates,
   setMore,
   getUserResponses,
   more,
@@ -55,6 +71,10 @@ function ResponseGrid({
   const [notes, setNotes] = useState<string | null>(null);
   const [isEditingNote, setIsEditingNote] = useState<boolean>(false);
   const [selectedResponseId, setSelectedResponseId] = useState<string>("");
+
+  useEffect(() => {
+    setLocalResponses(responses);
+  }, [responses]);
 
   async function updateStatus(response_id: string, status: string, e: any) {
     e.stopPropagation();
@@ -117,6 +137,12 @@ function ResponseGrid({
               Quality remark
             </td>
             <th scope="col" className="px-6 py-3 whitespace-nowrap">
+              Location
+            </th>
+            <th scope="col" className="px-6 py-3 whitespace-nowrap">
+              Map
+            </th>
+            <th scope="col" className="px-6 py-3 whitespace-nowrap">
               AC
             </th>
             <th scope="col" className="px-6 py-3">
@@ -140,6 +166,7 @@ function ResponseGrid({
             <th scope="col" className="px-6 py-3">
               Audio
             </th>
+           
             {responses &&
               responses.length > 0 &&
               responses[0].responses.map((response: any, index: number) => (
@@ -257,6 +284,26 @@ function ResponseGrid({
                       ].note
                     : "--"}
                 </td>
+                <td className="px-6 py-4 font-[500] text-center whitespace-nowrap">
+                  {formatLocation(response.location_data)}
+                </td>
+                <td
+                  className="px-6 py-4 font-[500] text-center"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <ButtonFilled
+                    className="w-10 p-0 cursor-pointer flex justify-center items-center rounded-full h-10 mx-auto bg-dark-gray text-white hover:bg-mid-gray"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const lat = Number(response.location_data?.latitude) || 0;
+                      const lng = Number(response.location_data?.longitude) || 0;
+                      setCoordinates({ lat, lng });
+                      setMapModalIsOpen(true);
+                    }}
+                  >
+                    <IoLocationOutline size={20} />
+                  </ButtonFilled>
+                </td>
                 <td className="px-6 py-4 font-[500] cursor-pointer">
                   {response.ac_no || "--"}
                 </td>
@@ -298,6 +345,7 @@ function ResponseGrid({
                     audioUrl={`${SERVER_BUCKET}/${response.audio_recording_path}`}
                   />
                 </td>
+               
 
                 {response.responses.map((res: any, colIndex: any) => (
                   <Response

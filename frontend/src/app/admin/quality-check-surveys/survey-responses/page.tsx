@@ -28,6 +28,7 @@ import { qualityCheckId, surveyCollectorId } from "@/utils/constants";
 import useUser from "@/hooks/useUser";
 import ResponseGrid from "@/components/qualityCheck/ResponseGrid";
 import QualityResponseModal from "@/components/survey-responses/QualityResponseModal";
+import MapModal from "@/components/survey-responses/MapModal";
 import Select2 from "react-select";
 import { SlCalender } from "react-icons/sl";
 import StyledTwoDatePicker from "@/components/ui/date/StyledTwoDatePicker";
@@ -63,7 +64,7 @@ function Page() {
   const [pannaPramukh, setPannaPramukh] = useState<any>(null);
   const [selectedPanna, setSelectedPanna] = useState<string | null>(null);
   const [surveyQuestions, setSurveyQuestions] = useState<any>(null);
-  const [coordinates, setCoordinates] = useState<{ lat: 0; lng: 0 }>({
+  const [coordinates, setCoordinates] = useState<{ lat: number; lng: number }>({
     lat: 0,
     lng: 0,
   });
@@ -732,6 +733,7 @@ function Page() {
           more={more}
           responses={responses}
           setMapModalIsOpen={setMapModalIsOpen}
+          setCoordinates={setCoordinates}
           setMore={setMore}
           setResponseModalIsOpen={setResponseModalIsOpen}
           setSelectedResponse={setSelectedResponse}
@@ -818,6 +820,13 @@ function Page() {
         selectedResponse={selectedResponse}
         setResponseModalIsOpen={setResponseModalIsOpen}
         users={users}
+      />
+
+      <MapModal
+        coordinates={coordinates}
+        isLoaded={isLoaded}
+        mapModalIsOpen={mapModalIsOpen}
+        setMapModalIsOpen={setMapModalIsOpen}
       />
 
       {/* Modal for assigning panna pramukh */}

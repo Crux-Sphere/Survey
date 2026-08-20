@@ -1,48 +1,49 @@
-import { GoogleMap, Marker } from "@react-google-maps/api";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import CustomModal from "../ui/Modal";
 
 interface Props {
   mapModalIsOpen: boolean;
   setMapModalIsOpen: (isOpen: boolean) => void;
-  isLoaded: boolean;
+  isLoaded?: boolean;
   coordinates: { lat: number; lng: number };
 }
 
-function MapModal({ mapModalIsOpen, isLoaded, setMapModalIsOpen, coordinates }: Props) {
-  console.log("coordinates in map--->", coordinates);
-
-  const [center, setCenter] = useState({ lat: coordinates.lat, lng: coordinates.lng });
-
-  useEffect(() => {
-    setCenter(coordinates);
-  }, [coordinates]);
-
-  console.log("center--->", center);
-
+function MapModal({ mapModalIsOpen, setMapModalIsOpen, coordinates }: Props) {
   const isLocationValid = coordinates.lat !== 0 || coordinates.lng !== 0;
+  const { lat, lng } = coordinates;
+  const delta = 0.03;
+  const bbox = `${lng - delta},${lat - delta},${lng + delta},${lat + delta}`;
+  const osmEmbedUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${encodeURIComponent(
+    bbox
+  )}&layer=mapnik&marker=${lat},${lng}`;
+  const googleMapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
 
   return (
     <CustomModal open={mapModalIsOpen} closeModal={() => setMapModalIsOpen(false)}>
       <div className="p-4 flex justify-center items-center">
         <div className="flex h-full w-full justify-center items-center flex-col gap-4">
           {isLocationValid ? (
-            isLoaded ? (
-              <GoogleMap
-                mapContainerStyle={{
-                  width: "500px",
-                  height: "500px",
-                }}
-                center={coordinates}
-                zoom={11}
+            <>
+              <iframe
+                title="Response location"
+                src={osmEmbedUrl}
+                width={500}
+                height={500}
+                className="rounded-lg border-0"
+              />
+              <a
+                href={googleMapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-primary-300 font-medium hover:underline"
               >
-                <Marker position={coordinates} />
-              </GoogleMap>
-            ) : (
-              <p>Loading map...</p>
-            )
+                Open in Google Maps
+              </a>
+            </>
           ) : (
-            <div className="flex justify-center items-center w-[500px] h-[500px] font-thin text-sm">No location found</div>
+            <div className="flex justify-center items-center w-[500px] h-[500px] font-thin text-sm">
+              No location found
+            </div>
           )}
         </div>
       </div>
