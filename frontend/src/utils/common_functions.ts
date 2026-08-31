@@ -23,12 +23,14 @@ export function formatDate(timestamp: string): string {
   return `${day}-${month}-${year}`;
 }
 
-export function truncateText(text: string, maxLength: number): string {
+export function truncateText(text: string | null | undefined, maxLength: number): string {
+  if (!text) {
+    return "";
+  }
   if (text.length > maxLength) {
     return text.slice(0, maxLength) + "...";
-  } else {
-    return text;
   }
+  return text;
 }
 
 export function getDateAndMonth(timestamp: string): string {

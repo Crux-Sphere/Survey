@@ -175,14 +175,14 @@ function ResponseGrid({
                   className="gap-2 font-semibold px-4 py-2 border-b min-w-32 whitespace-nowrap text-center"
                 >
                   {more !== response.question_id
-                    ? truncateText(response.question, 10)
-                    : response.question}
+                    ? truncateText(response.question, 10) || "---"
+                    : response.question || "---"}
                   <button
                     className="text-primary-300 text-sm ml-2"
                     onClick={() => setMore(response.question_id)}
                   >
                     {more !== response.question_id &&
-                    response.question.length > 10
+                    (response.question?.length ?? 0) > 10
                       ? "More"
                       : ""}
                   </button>
@@ -191,7 +191,7 @@ function ResponseGrid({
                     onClick={() => setMore(null)}
                   >
                     {more === response.question_id &&
-                    response.question.length > 10
+                    (response.question?.length ?? 0) > 10
                       ? "Less"
                       : ""}
                   </button>
