@@ -77,12 +77,14 @@ function FormHeader({
         data-tooltip-id={`tooltip-arrow`}
         data-tooltip-content="Expand/Shrink survey"
         data-tooltip-place="bottom"
+        onMouseDown={(e) => e.stopPropagation()}
         onClick={() => handleHide(index || 0)}
         type="button"
       >
         {hide ? <IoIosArrowDown /> : <IoIosArrowUp />}
       </button>
       <button
+        onMouseDown={(e) => e.stopPropagation()}
         onClick={() => handleDuplicate(index || 0)}
         data-tooltip-id={`tooltip-duplicate`}
         data-tooltip-content="Duplicate question"
@@ -94,6 +96,7 @@ function FormHeader({
       <button
         type="button"
         className="hover:text-red-500"
+        onMouseDown={(e) => e.stopPropagation()}
         onClick={() => handleDelete(index || 0)}
       >
         <MdOutlineDelete />

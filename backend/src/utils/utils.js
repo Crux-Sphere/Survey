@@ -2,6 +2,32 @@ const JWT = require("jsonwebtoken");
 const ExcelJS = require("exceljs");
 const crypto = require("crypto");
 
+/** Supports legacy "a\\nb" strings and new [{ id, label }] arrays. */
+function parseMatrixOptions(value) {
+  if (value == null || value === "") return [];
+  if (typeof value === "string") {
+    return value
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
+  }
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => {
+        if (item == null) return "";
+        if (typeof item === "string") return item.trim();
+        if (typeof item === "object") {
+          return String(
+            item.label ?? item.value ?? item.name ?? item.text ?? ""
+          ).trim();
+        }
+        return String(item).trim();
+      })
+      .filter(Boolean);
+  }
+  return [];
+}
+
 const generateResetToken = (id, email, expiresIn = "10m") => {
   return JWT.sign({ id, email }, process.env.JWT_SECRET, { expiresIn });
 };
@@ -120,10 +146,7 @@ const downloadExcel = async (data, res, req) => {
         if (question.question_type === "Radio Grid") {
           let subQs = [];
           if (question.parameters && question.parameters.row_options) {
-            subQs = question.parameters.row_options
-              .split("\n")
-              .map((row) => row.trim())
-              .filter(Boolean);
+            subQs = parseMatrixOptions(question.parameters.row_options);
           }
           questionMap.set(question.question, {
             type: "Radio Grid",
@@ -138,10 +161,9 @@ const downloadExcel = async (data, res, req) => {
       } else if (question.question_type === "Radio Grid") {
         // Radio Grid exists, but ensure we have all sub-questions from definition
         if (question.parameters && question.parameters.row_options) {
-          const definitionSubQs = question.parameters.row_options
-            .split("\n")
-            .map((row) => row.trim())
-            .filter(Boolean);
+          const definitionSubQs = parseMatrixOptions(
+            question.parameters.row_options
+          );
 
           const existingData = questionMap.get(question.question);
           const combinedSubQs = [
@@ -505,4 +527,5 @@ module.exports = {
   downloadDailyWorkExcel,
   generateOTPWithExpiry,
   generateUniqueSurveyId,
+  parseMatrixOptions,
 };

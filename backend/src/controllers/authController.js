@@ -3,7 +3,7 @@ const Role = require("../models/role")
 const router = express.Router();
 require("dotenv").config();
 const User = require("../models/user");
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const JWT_SECRET = process.env.JWT_SECRET;
 const { generateResetToken, generateOTPWithExpiry } = require("../utils/utils");

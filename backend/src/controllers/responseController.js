@@ -1795,17 +1795,22 @@ exports.importSurveyFromExcel = async (req, res) => {
                 : "Single line Text",
             parameters:
               subQuestion && subQuestion !== ""
-                ? { row_options: subQuestion }
+                ? { row_options: [{ id: 1, label: subQuestion }] }
                 : {},
           };
           questions.push(questionObj);
           questionMap.set(mainQuestion, questionObj);
         } else if (subQuestion && subQuestion !== "") {
-          // Add to existing Radio Grid row_options
+          // Add to existing Radio Grid row_options (array of objects)
           const existingQ = questionMap.get(mainQuestion);
-          if (existingQ.parameters.row_options) {
-            existingQ.parameters.row_options += `\n${subQuestion}`;
+          if (!Array.isArray(existingQ.parameters.row_options)) {
+            existingQ.parameters.row_options = [];
           }
+          const nextId = existingQ.parameters.row_options.length + 1;
+          existingQ.parameters.row_options.push({
+            id: nextId,
+            label: subQuestion,
+          });
         }
       }
     }

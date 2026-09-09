@@ -56,12 +56,67 @@ function SurveyForm() {
     control,
     name: "questions",
   });
+  function resolveFormComponent(type: string) {
+    const formMappings = FormMappings();
+    // Matrix Question is a Standard alias; older saves may use either name
+    return (
+      formMappings[type] ||
+      (type === "Matrix Question" ? formMappings["Radio Grid"] : undefined)
+    );
+  }
+
+  const questIdRef = React.useRef(questId);
+  questIdRef.current = questId;
+
+  function addQuestionByType(type: string) {
+    const Component = resolveFormComponent(type);
+    if (!Component) {
+      toast.error(`Unknown question type: ${type}`);
+      return;
+    }
+    const persistedType = type === "Matrix Question" ? "Radio Grid" : type;
+    const nextId = questIdRef.current;
+    setForms((prev) => [...prev, { component: Component, hide: false }]);
+    append({
+      question_id: nextId,
+      type: persistedType,
+      randomize: true,
+      common: false,
+      unique: false,
+      children: [],
+      dependency: [],
+      parameters: {},
+    });
+    setQuestId(nextId + 1);
+    toast.success(
+      persistedType === "Radio Grid"
+        ? "Matrix Question added — scroll down to configure rows & columns"
+        : "Question added"
+    );
+    setTimeout(() => {
+      const container = document.querySelector(".vertical-scrollbar");
+      if (container) container.scrollTop = container.scrollHeight;
+    }, 100);
+  }
+
+  const addQuestionByTypeRef = React.useRef(addQuestionByType);
+  addQuestionByTypeRef.current = addQuestionByType;
+
   // Effects
   useEffect(() => {
     if (_id) {
       handlegetSurveyData();
     }
   }, [_id]);
+
+  useEffect(() => {
+    const onAdd = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { type?: string };
+      if (detail?.type) addQuestionByTypeRef.current(detail.type);
+    };
+    window.addEventListener("survey-add-question", onAdd);
+    return () => window.removeEventListener("survey-add-question", onAdd);
+  }, []);
 
   // handle get survey
   async function handlegetSurveyData() {
@@ -70,9 +125,8 @@ function SurveyForm() {
     const response = await getSurvey(params);
     setLoading(false);
     if (response.success) {
-      const formMappings = FormMappings();
       const receivedForms = response.data.questions?.map((question: any) => ({
-        component: formMappings[question.type],
+        component: resolveFormComponent(question.type),
         hide: true,
       }));
       if (receivedForms) setForms(receivedForms);
@@ -83,16 +137,16 @@ function SurveyForm() {
         append({
           question_id: question.question_id,
           type: question.type,
-          parameters: question.parameters,
+          parameters: question.parameters || {},
           children: question.children,
           dependency: question.dependency,
           randomize: question.randomize,
           common: question.common || false,
           unique: question.unique || false,
         });
-        Object.keys(question.parameters).forEach((parameter: string) =>
+        Object.keys(question.parameters || {}).forEach((parameter: string) =>
           setValue(
-            `questions.${index}.parameters[${parameter}]`,
+            `questions.${index}.parameters.${parameter}`,
             question.parameters[parameter],
             { shouldDirty: false }
           )
@@ -147,25 +201,10 @@ function SurveyForm() {
 
   // Handle form drop event
   function handleDrop(e: React.DragEvent<HTMLDivElement>) {
-    const formMapping = FormMappings();
-    const data = e.dataTransfer.getData(
-      "text/plain"
-    ) as keyof typeof formMapping;
+    const data = e.dataTransfer.getData("text/plain");
     console.log("data is ----->", data);
-    if (data !== "form_reorder") {
-      const newForm = { component: formMapping[data], hide: false };
-      setForms([...forms, newForm]);
-      append({
-        question_id: questId,
-        type: data,
-        randomize: true,
-        common: false,
-        unique:false,
-        children: [],
-        dependency: [],
-        parameters: {},
-      });
-      setQuestId((prev) => prev + 1);
+    if (data && data !== "form_reorder") {
+      addQuestionByType(data);
     }
   }
 
@@ -274,31 +313,43 @@ function SurveyForm() {
             )}
             {!loading && !isSubmitting && forms.length > 0
               ? fields.map((field, index) => {
-                  const Form = forms[index].component;
+                  const Form = forms[index]?.component;
+                  if (!Form) {
+                    return (
+                      <div
+                        key={field.id}
+                        className="p-3 border border-red-300 bg-red-50 text-red-600 rounded-md text-sm"
+                      >
+                        Could not load question type:{" "}
+                        {String(getValues(`questions.${index}.type`) || "unknown")}
+                      </div>
+                    );
+                  }
                   return (
-                    <Form
-                      handleDragEnter={() => handleDragEnter(index)}
-                      handleDragStart={(e: React.DragEvent<HTMLDivElement>) =>
-                        handleDragStart(e, index)
-                      }
-                      endIndex={endDragIndex}
-                      key={field.id}
-                      id={questId}
-                      index={index}
-                      handleHide={handleHide}
-                      handleDuplicate={handleDuplicate}
-                      hide={forms[index].hide}
-                      control={control}
-                      handleDelete={handleDelete}
-                      register={register}
-                    />
+                    <div key={field.id} data-question-index={index}>
+                      <Form
+                        handleDragEnter={() => handleDragEnter(index)}
+                        handleDragStart={(e: React.DragEvent<HTMLDivElement>) =>
+                          handleDragStart(e, index)
+                        }
+                        endIndex={endDragIndex}
+                        id={String(getValues(`questions.${index}.question_id`) || index)}
+                        index={index}
+                        handleHide={handleHide}
+                        handleDuplicate={handleDuplicate}
+                        hide={forms[index].hide}
+                        control={control}
+                        handleDelete={handleDelete}
+                        register={register}
+                        setValue={setValue}
+                      />
+                    </div>
                   );
                 })
               : !loading &&
                 !isSubmitting && (
                   <p className="w-full h-[20vh] flex justify-center items-center text-secondary-300">
-                    Drag and drop the questions from left to add question to
-                    survey
+                    Click or drag a question from the left to add it to the survey
                   </p>
                 )}
           </div>

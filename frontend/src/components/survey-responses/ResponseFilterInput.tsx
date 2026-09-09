@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { parseMatrixOptions } from "@/utils/matrixOptions";
 interface props {
   surveyQuestions: any;
   question: any;
@@ -39,13 +40,13 @@ function ResponseFilterInput({
   }
 
   if (qType && ["Radio Grid","Number Grid","DropDown Grid","Single line Text Grid","Checkbox Grid"].includes(qType)) {
-    const row = questions.parameters.row_options.split("\n");
-    const column = questions.parameters.column_options.split("\n");
-    const result = row.flatMap((row: string) =>
+    const row = parseMatrixOptions(questions.parameters?.row_options);
+    const column = parseMatrixOptions(questions.parameters?.column_options);
+    const result = row.flatMap((rowLabel: string) =>
       column.map((col: string) => {
-        if (qType === "Radio Grid") return `${row}: ${col}`;
-        else if (["Number Grid","DropDown Grid","Single line Text Grid","Checkbox Grid"].includes(qType)) return `${row}-${col}`;
-        else return `${row}: ${col}`;
+        if (qType === "Radio Grid") return `${rowLabel}: ${col}`;
+        else if (["Number Grid","DropDown Grid","Single line Text Grid","Checkbox Grid"].includes(qType)) return `${rowLabel}-${col}`;
+        else return `${rowLabel}: ${col}`;
       })
     );
     console.log("result from radio grid --->", result);

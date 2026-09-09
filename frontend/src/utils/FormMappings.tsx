@@ -49,6 +49,7 @@ function FormMappings(): { [key: string]: React.ComponentType<any> } {
     Address: AddressForm,
     "Decimal Grid": DecimalGridForm,
     "Radio Grid": RadioGridForm,
+    "Matrix Question": RadioGridForm,
     "Radio Grid With Other": RadioGridOtherForm,
     "Checkbox With Text": CheckBoxWithTextForm,
     "Checkbox Grid": CheckBoxGridForm,

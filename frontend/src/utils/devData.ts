@@ -15,8 +15,9 @@ export const questions = [
   "Checkbox List With Other",
   "Number Input",
   // "Rating",
-  "Date",,
-  "Image"
+  "Date",
+  "Image",
+  "Matrix Question",
 ];
 
 export const advanceQuestions = [
