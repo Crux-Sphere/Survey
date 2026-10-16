@@ -1,5 +1,4 @@
 const JWT = require("jsonwebtoken");
-const ExcelJS = require("exceljs");
 const crypto = require("crypto");
 
 /** Supports legacy "a\\nb" strings and new [{ id, label }] arrays. */
@@ -48,6 +47,28 @@ const generateCryptoOTP = () => {
   }
 };
 
+/**
+ * Same calendar day the response page shows (India time).
+ * Excel stores a UTC serial, so a raw timestamp from 12:00–5:29 AM IST
+ * is written as the previous day. Noon UTC keeps the India day stable.
+ */
+function toIndiaExcelDate(value) {
+  if (!value) return "N/A";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "N/A";
+
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+
+  const part = (type) => Number(parts.find((item) => item.type === type)?.value);
+
+  return new Date(Date.UTC(part("year"), part("month") - 1, part("day"), 12, 0, 0));
+}
+
 const generateOTPWithExpiry = (expiryMinutes = 10) => {
   try {
     const otp = generateCryptoOTP();
@@ -87,11 +108,10 @@ const downloadExcel = async (data, res, req) => {
     { header: "Longitude", key: "longitude", width: 20 },
     { header: "Location link", key: "location_link", width: 20 },
     { header: "Audio", key: "audio", width: 20 },
-    { header: "QC Remarks", key: "qc_remarks", width: 40 }, // <-- Moved here
+    { header: "QC Remarks", key: "qc_remarks", width: 40 },
   ];
 
   const protocol = req.protocol || (req.secure ? "https" : "http");
-  const host = req.get ? req.get("host") : req.headers?.host;
 
   if (data.length > 0) {
     fileName = data[0].survey_id?.name?.split(" ").join("_") || "Responses";
@@ -229,6 +249,8 @@ const downloadExcel = async (data, res, req) => {
     ...dynamicKeys.map((k) => ({ header: k, key: k, width: 30 })),
   ];
 
+  worksheet.getColumn("response_date").numFmt = "dd-mmm-yyyy";
+
   // --- Add header row 2 only ---
   worksheet.addRow(headerRow2);
 
@@ -282,64 +304,13 @@ const downloadExcel = async (data, res, req) => {
   });
 
   // --- Add data rows ---
-  // data.forEach((item, index) => {
-  //   const baseRow = {
-  //     serial_no: index + 1,
-  //     panna_pramukh: item.panna_pramukh_assigned?.name || "N/A",
-  //     status: item.contacted ? "Contacted" : "Not Contacted",
-  //     remark: item.remark || "No Remark",
-  //     response_date: item.updatedAt || item.createdAt || "N/A",
-  //     user: item.user_id?.name || "Unknown",
-  //     house_no: item.house_no || "N/A",
-  //     ac_no: item.ac_no || "N/A",
-  //     name: item.name || "N/A",
-  //     phone_no: item.phone_no || "N/A",
-  //     booth_no: item.booth_no || "N/A",
-  //     latitude: item.location_data?.latitude || "N/A",
-  //     longitude: item.location_data?.longitude || "N/A",
-  //     location_link: item.location_data
-  //       ? {
-  //           text: "View Location",
-  //           hyperlink: `${protocol}://maps.google.com/maps?q=${item.location_data.latitude},${item.location_data.longitude}`,
-  //         }
-  //       : "N/A",
-  //     audio: item.audio_recording_path
-  //       ? {
-  //           text: "Audio File",
-  //           hyperlink: `${process.env.BUCKET_URL}/${item.audio_recording_path}`,
-  //         }
-  //       : "N/A",
-  //   };
-
-  //   const responseData = {};
-
-  //   item.responses.forEach((resp) => {
-  //     if (resp.question_type === "Radio Grid") {
-  //       const lines = resp.response.split("\n");
-  //       lines.forEach((line) => {
-  //         const [sub, val] = line.split(":").map((s) => s.trim());
-  //         if (sub) {
-  //           const key = [...questionKeyToLabelMap.entries()].find(
-  //             ([k, v]) => v.main === resp.question && v.sub === sub
-  //           )?.[0];
-  //           if (key) responseData[key] = val || "No Response";
-  //         }
-  //       });
-  //     } else {
-  //       responseData[resp.question] = resp.response || "No Response";
-  //     }
-  //   });
-
-  //   worksheet.addRow({ ...baseRow, ...responseData });
-  // });
-
   data.forEach((item, index) => {
     const baseRow = {
       serial_no: index + 1,
       panna_pramukh: item.panna_pramukh_assigned?.name || "N/A",
       status: item.contacted ? "Contacted" : "Not Contacted",
       remark: item.remark || "No Remark",
-      response_date: item.updatedAt || item.createdAt || "N/A",
+      response_date: toIndiaExcelDate(item.createdAt || item.updatedAt),
       user: item.user_id?.name || "Unknown",
       house_no: item.house_no || "N/A",
       ac_no: item.ac_no || "N/A",
@@ -362,7 +333,7 @@ const downloadExcel = async (data, res, req) => {
         : "N/A",
       qc_remarks: Array.isArray(item.quality_check_remarks)
         ? item.quality_check_remarks.map((r) => r.note).join("; ")
-        : "", // <-- Only QC remarks here
+        : "",
     };
 
     const responseData = {};
@@ -453,10 +424,9 @@ const downloadDailyWorkExcel = async (data, res, req) => {
   data.forEach((user) => {
     const durationH = Math.floor((user.workDurationMinutes || 0) / 60);
     const durationM = (user.workDurationMinutes || 0) % 60;
-    // console.log('Excel Export:', user.userName, 'totalResponses:', user.totalResponses, 'responses.length:', (user.responses || []).length);
     (user.responses || []).forEach((respObj, idx) => {
       const resp = respObj.response || {};
-      console.log("  Response", idx + 1, resp._id || resp.createdAt);
+      console.log(" Response", idx + 1, resp._id || resp.createdAt);
       const row = {
         serial_no: serial++,
         userName: user.userName || "N/A",
